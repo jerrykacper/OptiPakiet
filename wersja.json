@@ -2,18 +2,19 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "7.9.2",
+    "wersja": "7.9.3",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "315C03BD908F47851179B974ED719304A35E29EF144E6F74DBBD5A9F7C7E4140",
-      "rozmiar": 486519
+      "sha256": "AC53C4AF2B995A000196718080957D399CB2B572381AE33386992461F6C75C69",
+      "rozmiar": 491568
     },
     "zmiany": [
+      "Wskaznik aktualizacji w pasku tytulu, obok odznaki Administrator - widac stan i mozna sprawdzic recznie",
       "Nowe narzedzie \"Blokady aktualizacji\" - wskazujesz programy, ktorych winget ma nie ruszac",
       "Zadanie winget nie zawiesza sie juz na pakietach pytajacych o katalog instalacji",
-      "Ekran \"Co nowego\" po aktualizacji - widac, co sie wlasciwie zmienilo",
+      "Ekran \"Co nowego\" po aktualizacji",
       "Poprawiony odczyt pamieci karty graficznej (WMI podawalo 4 GB dla kazdej karty)",
       "Baza opisow rozszerzona o 6 pozycji"
     ]

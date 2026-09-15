@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.2'
+$AppWersja  = '7.9.3'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1080,15 +1080,23 @@ function Sprawdz-Wszystko {
     $m = Pobierz-Manifest
     $u.ostatnie = (Get-Date).ToString('o')
     Save-UstAkt $u
-    if (-not $m) { return $null }
+
+    # Przy sprawdzeniu recznym oddajemy wynik zawsze - takze pusty.
+    # Inaczej wskaznik w pasku tytulu nie mialby jak odrozniec "nie ma
+    # nowszej wersji" od "nie udalo sie polaczyc" i utknalby na napisie
+    # "Sprawdzam...".
+    if (-not $m) {
+        if ($Wymuszone) { return @{ Akt = $null; BazaOdswiezona = $false; Polaczono = $false } }
+        return $null
+    }
 
     $baza = $false
     try { $baza = [bool](Zaktualizuj-Baze $m) } catch { }
 
     $akt = Ocen-Manifest $m $u -Wymuszone:$Wymuszone
-    if (-not $akt -and -not $baza) { return $null }
+    if (-not $akt -and -not $baza -and -not $Wymuszone) { return $null }
 
-    return @{ Akt = $akt; BazaOdswiezona = $baza }
+    return @{ Akt = $akt; BazaOdswiezona = $baza; Polaczono = $true }
 }
 
 function Sprawdz-Aktualizacje {
@@ -1109,7 +1117,7 @@ $FunkcjeDoTla = @('Akt-Skonfigurowane','Load-UstAkt','Save-UstAkt','Ustaw-TLS',
                   'Zaktualizuj-Baze','Ocen-Manifest','Sprawdz-Wszystko','Sprawdz-Aktualizacje')
 
 function Sprawdz-AktualizacjeWTle {
-    param($Okno, [scriptblock]$PoZnalezieniu)
+    param($Okno, [scriptblock]$PoZnalezieniu, [switch]$Wymuszone)
 
     if (-not (Akt-Skonfigurowane)) { return }
 
@@ -1133,13 +1141,14 @@ function Sprawdz-AktualizacjeWTle {
         $rs.SessionStateProxy.SetVariable('BazaWbudowana', $BazaWbudowana)
         $rs.SessionStateProxy.SetVariable('Okno',        $Okno)
         $rs.SessionStateProxy.SetVariable('Callback',    $PoZnalezieniu)
+        $rs.SessionStateProxy.SetVariable('Wymus',       [bool]$Wymuszone)
 
         $ps = [powershell]::Create()
         $ps.Runspace = $rs
         $null = $ps.AddScript({
             try {
                 . ([scriptblock]::Create($Kod))
-                $wynik = Sprawdz-Wszystko
+                $wynik = Sprawdz-Wszystko -Wymuszone:$Wymus
                 if ($wynik -and $Okno) {
                     $Okno.Dispatcher.Invoke([action]{ & $Callback $wynik })
                 }
@@ -1995,7 +2004,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.2'
+$AppVersion = '7.9.3'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -3470,6 +3479,15 @@ $XamlText = @'
                 <TextBlock Text="Administrator" FontSize="11" Foreground="{StaticResource Good}"/>
               </StackPanel>
             </Border>
+            <Border x:Name="AktPill" Background="#141E2E" CornerRadius="6" Padding="9,2" Margin="9,0,0,0"
+                    VerticalAlignment="Center" Cursor="Hand" Visibility="Collapsed"
+                    ToolTip="Kliknij, żeby sprawdzić aktualizacje">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="AktPillIcon" Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="9.5"
+                           Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBlock x:Name="AktPillText" Text="" FontSize="11" Foreground="{StaticResource Muted}"/>
+              </StackPanel>
+            </Border>
           </StackPanel>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button x:Name="BtnHardware" Content="&#xE770;" Style="{StaticResource Chrome}"
@@ -4129,6 +4147,7 @@ foreach ($n in @('TitleBar','BtnMin','BtnClose','VerLabel','LogoMark','LogoRing'
                  'PanelDash','PanelGames','PanelDiag','PanelGry','PanelSys','PanelClean','PanelNet','PanelTools',
                  'DiagHost','GameHost','GameEmpty','BtnGameAdd','BtnGameDetect','BtnGameAll',
                  'GameInfo','BtnGameFilter','BtnGameClean',
+                 'AktPill','AktPillIcon','AktPillText',
                  'NavStartup','PanelStartup','StartupHost','StartupEmpty','StartupInfo','BtnStartupRefresh',
                  'NavProc','PanelProc','ProcHost','ProcInfo','BtnProcRefresh',
                  'NavLink','PanelLink','LinkHost','LinkPropHost','LinkInfo','BtnLinkScan',
@@ -9200,6 +9219,8 @@ function Render-Startup {
 
 $UI.BtnStartupRefresh.Add_Click({ Start-Worker 'startup_scan' })
 
+if ($UI.AktPill) { $UI.AktPill.Add_MouseLeftButtonUp({ Sprawdz-Recznie }) }
+
 # =====================================================================
 #  PROCESY W TLE - widok
 # =====================================================================
@@ -9728,6 +9749,108 @@ function Nowy-PrzyciskAkt {
     if ($Glowny) { $b.FontWeight = 'SemiBold' }
     return $b
 }
+
+# =====================================================================
+#  WSKAZNIK AKTUALIZACJI W PASKU TYTULU
+#
+#  Okno z aktualizacja pokazuje sie tylko w chwili, gdy cos sie znajdzie.
+#  Poza tym momentem uzytkownik nie mial gdzie sprawdzic, na czym stoi.
+#  Pigulka obok odznaki Administrator jest widoczna caly czas i klikalna.
+# =====================================================================
+
+$script:AktZnaleziona = $null
+
+function Ustaw-PigulkeAkt {
+    param([string]$Stan, [string]$Tekst)
+    if (-not $UI.AktPill) { return }
+
+    $UI.AktPill.Visibility = 'Visible'
+    $UI.AktPillText.Text = $Tekst
+
+    switch ($Stan) {
+        'nowa' {
+            $UI.AktPill.Background     = Br '#33280A'
+            $UI.AktPillText.Foreground = Br '#FBBF24'
+            $UI.AktPillIcon.Foreground = Br '#FBBF24'
+            $UI.AktPillIcon.Text       = [char]0xE896
+            $UI.AktPill.ToolTip        = 'Kliknij, żeby zobaczyć zmiany i zaktualizować'
+            try { Pulse $UI.AktPill 0.25 } catch { }
+        }
+        'szukam' {
+            $UI.AktPill.Background     = Br '#141E2E'
+            $UI.AktPillText.Foreground = Br '#9FB3C8'
+            $UI.AktPillIcon.Foreground = Br '#9FB3C8'
+            $UI.AktPillIcon.Text       = [char]0xE895
+            $UI.AktPill.ToolTip        = 'Sprawdzam dostępność nowej wersji'
+        }
+        'aktualny' {
+            $UI.AktPill.Background     = Br '#0F2E24'
+            $UI.AktPillText.Foreground = Br '#34D399'
+            $UI.AktPillIcon.Foreground = Br '#34D399'
+            $UI.AktPillIcon.Text       = [char]0xE73E
+            $UI.AktPill.ToolTip        = 'Masz najnowszą wersję. Kliknij, żeby sprawdzić ponownie'
+        }
+        'blad' {
+            $UI.AktPill.Background     = Br '#33280A'
+            $UI.AktPillText.Foreground = Br '#FBBF24'
+            $UI.AktPillIcon.Foreground = Br '#FBBF24'
+            $UI.AktPillIcon.Text       = [char]0xE7BA
+            $UI.AktPill.ToolTip        = 'Nie udało się połączyć. Kliknij, żeby spróbować ponownie'
+        }
+        default {
+            $UI.AktPill.Background     = Br '#141E2E'
+            $UI.AktPillText.Foreground = Br '#7E8DA1'
+            $UI.AktPillIcon.Foreground = Br '#7E8DA1'
+            $UI.AktPillIcon.Text       = [char]0xE895
+            $UI.AktPill.ToolTip        = 'Kliknij, żeby sprawdzić aktualizacje'
+        }
+    }
+}
+
+# Jedno miejsce obslugi wyniku - obojetne, czy przyszedl ze sprawdzenia
+# automatycznego przy starcie, czy z klikniecia w pigulke.
+function Odbierz-WynikAkt {
+    param($W, [switch]$Reczne)
+
+    if ($W -and $W.BazaOdswiezona) {
+        if (Load-Baza) {
+            Add-Log "Baza opisów zaktualizowana (wersja $script:BazaWersja)." 'ok'
+            try { if ($sync.Startup) { Render-Startup } } catch { }
+            try { if ($sync.Procs)   { Render-Procs   } } catch { }
+        }
+    }
+
+    if ($W -and $W.Akt) {
+        $script:AktZnaleziona = $W.Akt
+        Ustaw-PigulkeAkt 'nowa' "Nowa wersja $($W.Akt.Wersja)"
+        Pokaz-Aktualizacje $W.Akt
+        return
+    }
+
+    if (-not $Reczne) { return }
+
+    # Ponizej juz tylko sprawdzenie reczne: uzytkownik czeka na odpowiedz,
+    # wiec musi ja dostac takze wtedy, gdy nic nowego nie ma.
+    if ($W -and $W.Polaczono) {
+        Ustaw-PigulkeAkt 'aktualny' 'Aktualny'
+        Add-Log "Sprawdzono aktualizacje - masz najnowszą wersję ($AppWersja)." 'ok'
+    } else {
+        Ustaw-PigulkeAkt 'blad' 'Brak połączenia'
+        Add-Log 'Nie udało się sprawdzić aktualizacji - brak połączenia z serwerem.' 'warn'
+    }
+}
+
+function Sprawdz-Recznie {
+    if ($script:AktZnaleziona) { Pokaz-Aktualizacje $script:AktZnaleziona; return }
+    if (-not (Akt-Skonfigurowane)) {
+        Ustaw-PigulkeAkt 'blad' 'Nie skonfigurowano'
+        Add-Log 'Adres aktualizacji nie jest ustawiony w tej kopii programu.' 'warn'
+        return
+    }
+    Ustaw-PigulkeAkt 'szukam' 'Sprawdzam...'
+    Sprawdz-AktualizacjeWTle $Window { param($w) Odbierz-WynikAkt $w -Reczne } -Wymuszone
+}
+
 
 # =====================================================================
 #  BLOKADY AKTUALIZACJI (winget pin)
@@ -10260,19 +10383,11 @@ $Window.Add_ContentRendered({
     # inaczej oba okna potrafilyby wyskoczyc naraz.
     try { Pokaz-CoNowego } catch { }
 
-    Sprawdz-AktualizacjeWTle $Window {
-        param($w)
-        # Nowa baza opisow wchodzi od razu, bez pytania i bez restartu -
-        # to tylko tekst. Otwarte listy przerysowuja sie same.
-        if ($w.BazaOdswiezona) {
-            if (Load-Baza) {
-                Add-Log "Baza opisów zaktualizowana (wersja $script:BazaWersja)." 'ok'
-                try { if ($sync.Startup) { Render-Startup } } catch { }
-                try { if ($sync.Procs)   { Render-Procs   } } catch { }
-            }
-        }
-        if ($w.Akt) { Pokaz-Aktualizacje $w.Akt }
-    }
+    # Pigulka jest widoczna od startu, nawet gdy sprawdzenie nie idzie
+    # (limit raz na dobe) - kliknieciem wymusza je natychmiast.
+    if (Akt-Skonfigurowane) { Ustaw-PigulkeAkt 'neutral' 'Aktualizacje' }
+
+    Sprawdz-AktualizacjeWTle $Window { param($w) Odbierz-WynikAkt $w }
 })
 
 $Window.ShowDialog() | Out-Null

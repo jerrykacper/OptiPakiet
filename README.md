@@ -5,7 +5,7 @@ Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle
 
 ---
 
-## OptiLauncher 7.9.2
+## OptiLauncher 7.9.3
 
 Optymalizacja i diagnostyka komputera.
 
@@ -83,6 +83,11 @@ uruchamia: prawy klik na plik → Właściwości → zaznacz „Odblokuj".
 
 Program sprawdza raz na dobę, czy jest nowsza wersja. Sprawdzanie idzie
 w tle, po pokazaniu okna — brak sieci niczego nie opóźnia.
+
+W pasku tytułu, obok odznaki Administrator, siedzi wskaźnik stanu:
+neutralny, gdy nic nie wiadomo, zielony „Aktualny" po sprawdzeniu,
+bursztynowy z numerem, gdy czeka nowa wersja. Kliknięcie wymusza
+sprawdzenie natychmiast, bez czekania na dobowy limit.
 
 **Nic nie pobiera się samo.** Po znalezieniu nowej wersji pojawia się okno
 z listą zmian i trzema przyciskami: aktualizuj, pomiń tę wersję, później.
