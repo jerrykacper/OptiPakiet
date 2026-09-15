@@ -2,18 +2,19 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "7.9.5",
+    "wersja": "7.9.6",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "2F6202020E7CD2ABD79E8E611E58124AA052D337CA3232488CE72E72C21AFA41",
-      "rozmiar": 500227
+      "sha256": "D7F7770DCAF0D6D22D6265548AD46854B139A12CD2016CCDC986AF9195CDE733",
+      "rozmiar": 500998
     },
     "zmiany": [
-      "\"Pozniej\" znaczy teraz naprawde \"przy nastepnym uruchomieniu\", a nie \"za 20 godzin\"",
-      "Pasek postepu 0-100% przy pobieraniu aktualizacji, z licznikiem megabajtow",
-      "Okno nie zamraza sie juz w trakcie aktualizacji",
+      "Aktualizacja dziala takze wtedy, gdy wydanie nie zawiera instalatora - podmieniany jest sam plik",
+      "\"Pozniej\" znaczy naprawde \"przy nastepnym uruchomieniu\", a nie \"za 20 godzin\"",
+      "Pasek postepu 0-100% przy pobieraniu, z licznikiem megabajtow",
+      "Okno nie zamraza sie w trakcie aktualizacji",
       "Wskaznik aktualizacji w pasku tytulu, obok odznaki Administrator",
       "Nowe narzedzie \"Blokady aktualizacji\" - programy, ktorych winget ma nie ruszac",
       "Zadanie winget nie zawiesza sie na pakietach pytajacych o katalog instalacji",

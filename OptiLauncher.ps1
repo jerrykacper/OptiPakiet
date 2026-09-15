@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.5'
+$AppWersja  = '7.9.6'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1311,12 +1311,16 @@ function Zakoncz-PodmianePs1 {
 
     # Wpis w Ustawieniach Windows tez musi poznac nowy numer - inaczej
     # lista zainstalowanych programow zostanie przy starej wersji.
-    try {
-        $reg = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OptiLauncher'
-        if (Test-Path $reg) {
-            New-ItemProperty -Path $reg -Name 'DisplayVersion' -Value $Info.Wersja -PropertyType String -Force | Out-Null
-        }
-    } catch { }
+    # Dwa mozliwe klucze: wlasny (instalacja .batem) i Inno Setup.
+    foreach ($reg in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OptiLauncher',
+                       "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($AktAppId)_is1")) {
+        try {
+            if (Test-Path $reg) {
+                New-ItemProperty -Path $reg -Name 'DisplayVersion' -Value $Info.Wersja `
+                                 -PropertyType String -Force | Out-Null
+            }
+        } catch { }
+    }
 
     $psexe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $argumenty = @('-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File', "`"$swap`"",
@@ -1483,17 +1487,29 @@ function Sprawdz-Sume {
     return ($h -eq $Sha256.ToUpper())
 }
 
+# Ktora droga aktualizacji ma sens przy tej instalacji i tym manifescie.
+# Instalacja z instalatora woli instalator, bo ten utrzymuje spojnosc
+# skrotow i wpisu w Ustawieniach Windows - ale gdy manifest go nie
+# podaje, podmiana samego pliku jest lepsza niz komunikat o bledzie.
+# Numer wersji w rejestrze i tak zostaje poprawiony.
+function Wybierz-DrogeAktualizacji {
+    param($Info)
+    $tryb = Get-TrybInstalacji
+    if ($tryb -eq 'inno' -and $Info.SetupUrl) { return 'inno' }
+    return 'ps1'
+}
+
 function Zainstaluj-Aktualizacje {
     param($Info, [scriptblock]$Postep)
 
-    $tryb = Get-TrybInstalacji
+    $droga = Wybierz-DrogeAktualizacji $Info
 
-    if ($Info.PelnaWymag -and $tryb -ne 'inno') {
+    if ($Info.PelnaWymag -and $droga -ne 'inno') {
         return @{ Ok = $false
                   Blad = 'Ta wersja wymaga pelnej instalacji - pobierz instalator ze strony programu.' }
     }
 
-    if ($tryb -eq 'inno') { return (Start-AktualizacjaInno $Info $Postep) }
+    if ($droga -eq 'inno') { return (Start-AktualizacjaInno $Info $Postep) }
     return (Start-AktualizacjaPs1 $Info $Postep)
 }
 
@@ -2152,7 +2168,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.5'
+$AppVersion = '7.9.6'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -10490,7 +10506,7 @@ function Pokaz-Aktualizacje {
         $bar.IsIndeterminate = $true
         $bar.Value = 0
 
-        $tryb = Get-TrybInstalacji
+        $tryb = Wybierz-DrogeAktualizacji $Info
         if ($Info.PelnaWymag -and $tryb -ne 'inno') {
             & $pokazBlad 'Ta wersja wymaga pełnej instalacji - pobierz instalator ze strony programu.'
             return
