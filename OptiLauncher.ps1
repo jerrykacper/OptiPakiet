@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.2.1'
+$AppWersja  = '8.3.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2186,7 +2186,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.2.1'
+$AppVersion = '8.3'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -2499,6 +2499,65 @@ $Motywy = @(
        '#E6EDF3' = '#EAECEF'
        '#EAF2F8' = '#EFF1F3'
      } }
+  @{ Id = 'szmaragd'; Nazwa = 'Szmaragd'; Opis = 'zieleń zamiast cyjanu'
+     Probki = @('#22EEA3','#81C8F8','#112226','#050D10','#EAF8F7')
+     Mapa = @{
+       '#04121A' = '#041A17'
+       '#050810' = '#050D10'
+       '#06121A' = '#061A18'
+       '#070A10' = '#070E10'
+       '#080D16' = '#081416'
+       '#0A0F19' = '#0A1619'
+       '#0B0E14' = '#0B1214'
+       '#0B101A' = '#0B171A'
+       '#0D1420' = '#0D1D20'
+       '#101826' = '#102326'
+       '#111826' = '#112226'
+       '#111C2C' = '#112A2C'
+       '#121722' = '#121F22'
+       '#121B29' = '#122729'
+       '#123243' = '#12433C'
+       '#131C2A' = '#13282A'
+       '#141D2C' = '#14292C'
+       '#141E2E' = '#142B2E'
+       '#151F2E' = '#152C2E'
+       '#161B26' = '#162326'
+       '#161F30' = '#162C30'
+       '#16202F' = '#162D2F'
+       '#182233' = '#183033'
+       '#18243A' = '#18353A'
+       '#1A2130' = '#1A2C30'
+       '#1A2434' = '#1A3134'
+       '#1A2536' = '#1A3336'
+       '#1B2637' = '#1B3437'
+       '#1B3450' = '#1B4E50'
+       '#1E2A3D' = '#1E3A3D'
+       '#22304A' = '#22444A'
+       '#22D3EE' = '#22EEA3'
+       '#233044' = '#234044'
+       '#2622D3EE' = '#2622EEA3'
+       '#26364C' = '#26494C'
+       '#26384F' = '#264D4F'
+       '#2C3D55' = '#2C5255'
+       '#2F4C74' = '#2F6E74'
+       '#31404F' = '#314F4F'
+       '#3C5A80' = '#3C7C80'
+       '#3D4A5C' = '#3D5A5C'
+       '#4A586C' = '#4A696C'
+       '#5C6B80' = '#5C7D80'
+       '#60A5FA' = '#60F2FA'
+       '#67E8F9' = '#67F9C1'
+       '#7E8DA1' = '#7E9EA1'
+       '#818CF8' = '#81C8F8'
+       '#8B98A9' = '#8BA7A9'
+       '#93A7BD' = '#93BCBD'
+       '#9FB3C8' = '#9FC7C8'
+       '#A5B4FC' = '#A5E0FC'
+       '#A78BFA' = '#8BA6FA'
+       '#E6EDF3' = '#E6F3F2'
+       '#EAF2F8' = '#EAF8F7'
+     }
+  }
   @{ Id = 'blekit'; Nazwa = 'Błękit'; Opis = 'głęboki, chłodny niebieski'
      Probki = @('#3572F4','#97B7FC','#101727','#070A10','#E0E7F5')
      Mapa = @{
@@ -11030,6 +11089,9 @@ function Pokaz-Aktualizacje {
         if (-not $url) { & $pokazBlad 'Manifest nie podaje pliku do pobrania.'; return }
 
         $stan.Text = 'Pobieram...'
+        # Kazdy etap trafia do konsoli. Gdyby aktualizacja kiedys stanela,
+        # ostatni wpis powie gdzie - zamiast zostawiac nas ze zgadywaniem.
+        Add-Log "Aktualizacja $($Info.Wersja): pobieram $url" 'info'
 
         $postep = {
             param($Proc, $Ile, $Caly)
@@ -11051,6 +11113,7 @@ function Pokaz-Aktualizacje {
             $bar.IsIndeterminate = $false
             $bar.Value = 100
             $stan.Text = 'Sprawdzam sumę kontrolną...'
+            Add-Log 'Aktualizacja: plik pobrany, sprawdzam sumę kontrolną.' 'info'
 
             if (-not (Sprawdz-Sume $cel $sha)) {
                 Remove-Item -LiteralPath $cel -Force -ErrorAction SilentlyContinue
@@ -11058,11 +11121,13 @@ function Pokaz-Aktualizacje {
                 return
             }
 
-            $raport = { param($T) $stan.Text = "$T" }.GetNewClosure()
+            $raport = { param($T) $stan.Text = "$T"; Add-Log "Aktualizacja: $T" 'info' }.GetNewClosure()
             if ($etap -eq 'inno') { $wynik = Zakoncz-Instalator  $Info $cel $raport }
             else                  { $wynik = Zakoncz-PodmianePs1 $Info $cel $raport }
 
             if (-not $wynik.Ok) { & $pokazBlad $wynik.Blad; return }
+
+            Add-Log 'Aktualizacja: plik podmieniony, restartuję program.' 'ok'
 
             $stan.Foreground = (Br '#34D399')
             $stan.Text = 'Gotowe - program zamknie się i uruchomi ponownie.'

@@ -5,7 +5,7 @@ Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle
 
 ---
 
-## OptiLauncher 8.2.1
+## OptiLauncher 8.3
 
 Optymalizacja i diagnostyka komputera.
 
@@ -34,7 +34,7 @@ Każda zmiana trafia do `backup.json` i da się ją cofnąć jednym przyciskiem.
 | Procesy w tle | co zajmuje pamięć teraz, z opisem każdego procesu |
 | Łącze | pomiar sieci i ustawienia sterownika karty |
 | Diagnostyka | skan systemu, raport HTML, pomiar przed i po |
-| Wygląd | dziewięć motywów, gęstość widoku, tło Mica |
+| Wygląd | dziesięć motywów, gęstość widoku, tło Mica |
 
 Do tego zadania optymalizacyjne w sześciu grupach: gry i wydajność,
 system, usługi, czyszczenie, sieć, aplikacje — każde z cofaniem zmian.
