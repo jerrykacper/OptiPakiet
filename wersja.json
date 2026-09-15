@@ -2,18 +2,20 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.5.0",
+    "wersja": "8.6.0",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "426E69F337BCBA672D37B082E92E2A811C70FDA47105EC1A01EAF3D6B038BBF5",
-      "rozmiar": 527671
+      "sha256": "C3D1E3E8247BCE839145BA0FFFBEBE4A8D499368E5021F413A9D8A04194BD488",
+      "rozmiar": 536330
     },
     "zmiany": [
-      "Pasek postepu pokazuje znowu procenty i kilobajty w trakcie pobierania",
-      "Gdyby postep byl niedostepny, program pobiera bez niego zamiast przerywac",
-      "Kazdy krok aktualizacji nadal widac w konsoli"
+      "Zakladka Lacze: pomiar predkosci pobierania i wysylania",
+      "Zakladka Lacze: publiczny adres IP z trzema metodami zapasowymi i ostrzezeniem o CGNAT",
+      "Zakladka Lacze: ping do Steam, Xbox Live, Discord i Riot Games",
+      "Zakladka Lacze: traceroute z czasem na kazdym skoku",
+      "Pasek postepu aktualizacji pokazuje procenty i kilobajty"
     ]
   },
   "lacze": {
@@ -28,9 +30,9 @@
     "zmiany": []
   },
   "baza": {
-    "wersja": 8,
+    "wersja": 9,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "9AF3CA122C8573254E103FB531AB8CDE7729B127476CC9084E0C2A42E763738E",
+    "sha256": "9ABEC1553D48ED2E0F3CD1636990385FCFA48990EE090250BA896337C7043D24",
     "rozmiar": 27177
   }
 }

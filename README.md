@@ -5,7 +5,7 @@ Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle
 
 ---
 
-## OptiLauncher 8.5
+## OptiLauncher 8.6
 
 Optymalizacja i diagnostyka komputera.
 
@@ -32,7 +32,7 @@ Każda zmiana trafia do `backup.json` i da się ją cofnąć jednym przyciskiem.
 | Moje gry | wykrywanie gier ze Steam i Epic, ustawienia wydajności per gra |
 | Autostart | co startuje z Windows, z opisem i zmierzonym opóźnieniem startu |
 | Procesy w tle | co zajmuje pamięć teraz, z opisem każdego procesu |
-| Łącze | pomiar sieci i ustawienia sterownika karty |
+| Łącze | ping, jitter i straty osobno do routera i internetu, prędkości w obie strony, publiczny IP, traceroute, ping do platform gamingowych, ustawienia sterownika karty |
 | Diagnostyka | skan systemu, raport HTML, pomiar przed i po |
 | Wygląd | dziesięć motywów, gęstość widoku, tło Mica |
 

@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.5.0'
+$AppWersja  = '8.6.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2212,7 +2212,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.5'
+$AppVersion = '8.6'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -6347,7 +6347,207 @@ function Get-NetDiag {
         AddN 'Wniosek' 'Lacze zachowuje sie prawidlowo - nie ma tu czego optymalizowac.' 'ok'
     }
 
+    # --- adres publiczny ---
+    Status 'Odczyt adresu publicznego...'
+    $pubIP = Get-PublicznyIP
+    if ($pubIP) {
+        AddN 'Publiczny adres IP' $pubIP
+        AddN 'Uwaga' 'Przydatne przy hostowaniu gry i przekierowaniu portow. Jesli ten adres rozni sie od adresu WAN na stronie routera, operator uzywa NAT operatorskiego (CGNAT) - przekierowanie portow wtedy nie zadziala.'
+    } else {
+        AddN 'Publiczny adres IP' 'nie udalo sie odczytac' 'warn'
+    }
+
+    # --- predkosci ---
+    Status 'Pomiar predkosci pobierania...'
+    $pred = Measure-Predkosc
+    if ($pred.ok) {
+        $s = 'ok'
+        if ($pred.mbps -lt 20) { $s = 'err' } elseif ($pred.mbps -lt 50) { $s = 'warn' }
+        AddN 'Pobieranie' ("{0} Mb/s   (pobrano {1} MB w {2} s)" -f $pred.mbps, $pred.mb, $pred.sek) $s
+        AddN 'Uwaga' 'Jeden strumien, jeden serwer - na bardzo szybkich laczach wynik bywa nizszy od realnego.'
+    } else {
+        AddN 'Pobieranie' 'nie udalo sie zmierzyc' 'warn'
+    }
+
+    Status 'Pomiar predkosci wysylania...'
+    $predUp = Measure-PredkoscWysylania
+    if ($predUp.ok) {
+        $s = 'ok'
+        if ($predUp.mbps -lt 5) { $s = 'err' } elseif ($predUp.mbps -lt 15) { $s = 'warn' }
+        AddN 'Wysylanie' ("{0} Mb/s   (wyslano {1} MB w {2} s)" -f $predUp.mbps, $predUp.mb, $predUp.sek) $s
+    } else {
+        AddN 'Wysylanie' 'nie udalo sie zmierzyc' 'warn'
+    }
+
+    # --- serwery gier ---
+    Status 'Pomiar do platform gamingowych...'
+    foreach ($wg in (Measure-Serwery $SerweryGier 6)) {
+        if ($wg.ok) {
+            $s = 'ok'
+            if ($wg.avg -gt 100 -or $wg.loss -gt 0) { $s = 'warn' }
+            AddN $wg.nazwa ("{0} ms   jitter {1} ms   straty {2} %" -f $wg.avg, $wg.jitter, $wg.loss) $s
+        } else {
+            AddN $wg.nazwa 'brak odpowiedzi (firma moze blokowac ping - to nie musi oznaczac problemu)'
+        }
+    }
+
+    # --- trasa do internetu ---
+    Status 'Sledzenie trasy do 1.1.1.1...'
+    foreach ($skok in (Get-Traceroute -Cel '1.1.1.1' -MaxSkokow 18 -TimeoutMs 700)) {
+        if (-not $skok.odpowiedzial) {
+            AddN "Skok $($skok.skok)" '* brak odpowiedzi (mozliwa blokada ICMP na tym wezle)'
+        } else {
+            $s = 'ok'
+            if ($skok.czas -gt 80) { $s = 'err' } elseif ($skok.czas -gt 40) { $s = 'warn' }
+            $adr = $(if ($skok.adres) { $skok.adres } else { '?' })
+            AddN "Skok $($skok.skok)" ("{0}   -   {1} ms" -f $adr, $skok.czas) $s
+        }
+    }
+
     return ,$rows
+}
+
+# =====================================================================
+#  POMIARY PRZENIESIONE ZE SPRAWDZANIA LACZA 1.4
+#  Ping, jitter i straty OptiLauncher mierzyl juz wczesniej. To sa te
+#  cztery rzeczy, ktorych nie mial: predkosc w obie strony, adres
+#  publiczny, traceroute i pomiar do platform gamingowych.
+# =====================================================================
+
+$SerweryGier = @(
+    @{ nazwa = 'Steam (Valve)';  cel = 'steampowered.com' }
+    @{ nazwa = 'Xbox Live';      cel = 'xbox.com' }
+    @{ nazwa = 'Discord';        cel = 'discord.com' }
+    @{ nazwa = 'Riot Games';     cel = 'riotgames.com' }
+)
+
+function Measure-Serwery {
+    param([array]$Lista, [int]$Ile = 6, [scriptblock]$Postep = $null)
+    $wyniki = New-Object System.Collections.ArrayList
+    foreach ($s in $Lista) {
+        $ip = $null
+        try {
+            $rec = Resolve-DnsName -Name $s.cel -Type A -ErrorAction Stop |
+                   Where-Object { $_.Type -eq 'A' } | Select-Object -First 1
+            if ($rec) { $ip = $rec.IPAddress }
+        } catch { }
+        if (-not $ip) {
+            [void]$wyniki.Add(@{ nazwa = $s.nazwa; cel = $s.cel; ok = $false; avg=0; jitter=0; loss=100 })
+            if ($Postep) { & $Postep }
+            continue
+        }
+        $m = Measure-Latency $ip $Ile
+        $m.nazwa = $s.nazwa
+        $m.cel   = $s.cel
+        [void]$wyniki.Add($m)
+        if ($Postep) { & $Postep }
+    }
+    return ,$wyniki
+}
+
+function Get-PublicznyIP {
+    # Metoda 1: trik DNS przez OpenDNS - dziala nawet gdy cos przycina
+    # zwykly ruch webowy, ale niektore routery/sieci blokuja zapytania
+    # do wskazanego wprost serwera DNS (port 53 poza standardowa trasa).
+    try {
+        $rec = Resolve-DnsName -Name 'myip.opendns.com' -Server 'resolver1.opendns.com' `
+                                -Type A -ErrorAction Stop | Select-Object -First 1
+        if ($rec -and $rec.IPAddress) { return "$($rec.IPAddress)" }
+    } catch { }
+
+    # Metoda 2: ten sam trik, ale przez DNS Google (inny serwer - jesli
+    # akurat OpenDNS jest niedostepny/zablokowany, Google moze przejsc).
+    try {
+        $rec = Resolve-DnsName -Name 'o-o.myaddr.l.google.com' -Server 'ns1.google.com' `
+                                -Type TXT -ErrorAction Stop | Select-Object -First 1
+        if ($rec -and $rec.Strings) {
+            $ip = ($rec.Strings -join '').Trim('"')
+            if ($ip) { return $ip }
+        }
+    } catch { }
+
+    # Metoda 3: zwykle zapytanie HTTP jako ostatnia deska ratunku - jesli
+    # obie proby po DNS zawiodly (np. siec blokuje zapytania do obcych
+    # serwerow DNS), zwykla strona przez HTTPS zwykle dziala.
+    foreach ($url in @('https://api.ipify.org', 'https://icanhazip.com')) {
+        try {
+            $odp = Invoke-RestMethod -Uri $url -TimeoutSec 5 -ErrorAction Stop
+            $ip  = "$odp".Trim()
+            if ($ip -match '^\d{1,3}(\.\d{1,3}){3}$' -or $ip -match ':') { return $ip }
+        } catch { }
+    }
+
+    return $null
+}
+
+function Measure-Predkosc {
+    param([long]$Bajtow = 20000000, [int]$TimeoutSec = 20)
+    $url = "https://speed.cloudflare.com/__down?bytes=$Bajtow"
+    try {
+        $sw  = [System.Diagnostics.Stopwatch]::StartNew()
+        $odp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        $sw.Stop()
+        $sek = $sw.Elapsed.TotalSeconds
+        $bajty = [int64]$odp.RawContentLength
+        if ($bajty -le 0 -and $odp.Content) { $bajty = [int64]$odp.Content.Length }
+        if ($sek -le 0 -or $bajty -le 0) { return @{ ok = $false } }
+        $mbps = [math]::Round((($bajty * 8) / $sek) / 1MB, 1)
+        return @{ ok = $true; mbps = $mbps; mb = [math]::Round($bajty / 1MB, 1); sek = [math]::Round($sek, 1) }
+    } catch {
+        return @{ ok = $false }
+    }
+}
+
+function Measure-PredkoscWysylania {
+    param([long]$Bajtow = 8000000, [int]$TimeoutSec = 20)
+    $url = "https://speed.cloudflare.com/__up"
+    try {
+        $dane = New-Object byte[] $Bajtow
+        (New-Object System.Random).NextBytes($dane)
+        $sw  = [System.Diagnostics.Stopwatch]::StartNew()
+        $null = Invoke-WebRequest -Uri $url -Method Post -Body $dane -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        $sw.Stop()
+        $sek = $sw.Elapsed.TotalSeconds
+        if ($sek -le 0) { return @{ ok = $false } }
+        $mbps = [math]::Round((($Bajtow * 8) / $sek) / 1MB, 1)
+        return @{ ok = $true; mbps = $mbps; mb = [math]::Round($Bajtow / 1MB, 1); sek = [math]::Round($sek, 1) }
+    } catch {
+        return @{ ok = $false }
+    }
+}
+
+function Get-Traceroute {
+    param([string]$Cel, [int]$MaxSkokow = 20, [int]$TimeoutMs = 1000, [scriptblock]$Postep = $null)
+    $wyniki  = New-Object System.Collections.ArrayList
+    $ping    = New-Object System.Net.NetworkInformation.Ping
+    $bufor   = [byte[]](0..31 | ForEach-Object { 0 })
+    $dotarto = $false
+    for ($ttl = 1; $ttl -le $MaxSkokow -and -not $dotarto; $ttl++) {
+        $opts   = New-Object System.Net.NetworkInformation.PingOptions ($ttl, $true)
+        $czasy  = New-Object System.Collections.ArrayList
+        $adres  = $null
+        for ($proba = 0; $proba -lt 3; $proba++) {
+            try {
+                $r = $ping.Send($Cel, $TimeoutMs, $bufor, $opts)
+                if ($r -and $r.Address -and -not $adres) { $adres = $r.Address.ToString() }
+                if ($r -and ($r.Status -eq [System.Net.NetworkInformation.IPStatus]::TtlExpired -or
+                             $r.Status -eq [System.Net.NetworkInformation.IPStatus]::Success)) {
+                    [void]$czasy.Add([double]$r.RoundtripTime)
+                    if ($r.Status -eq [System.Net.NetworkInformation.IPStatus]::Success) { $dotarto = $true }
+                }
+            } catch { }
+        }
+        $srednia = 0
+        if ($czasy.Count -gt 0) { $srednia = [math]::Round((($czasy | Measure-Object -Average).Average), 0) }
+        [void]$wyniki.Add(@{
+            skok        = $ttl
+            adres       = $(if ($adres) { $adres } else { $null })
+            czas        = $srednia
+            odpowiedzial= ($czasy.Count -gt 0)
+        })
+        if ($Postep) { & $Postep }
+    }
+    return ,$wyniki
 }
 
 # UWAGA: -RegistryKeyword traktuje gwiazdke jako WIELOZNACZNIK, a standardowe
