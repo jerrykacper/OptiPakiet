@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.1'
+$AppWersja  = '7.9.2'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1995,7 +1995,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.1'
+$AppVersion = '7.9.2'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -4244,7 +4244,7 @@ $Tasks = @(
   @{Id='chkdisk'; Cat='Net'; Icon='&#xEDA2;'; Title='Skanuj dysk systemowy';
     Desc='Repair-Volume -Scan, bez restartu.'; Tag=''; Rec=$false; Reboot=$false; Rev=$false; Test=$false}
   @{Id='winupd';  Cat='Net'; Icon='&#xE895;'; Title='Aktualizuj programy (winget)';
-    Desc='Otwiera osobne okno konsoli z postępem.'; Tag=''; Rec=$false; Reboot=$false; Rev=$false; Test=$false}
+    Desc='Otwiera osobne okno konsoli z postępem. Pakiety wymagające decyzji (własny katalog instalacji) są pomijane, żeby nie zablokowały reszty. Aktualizuje wszystko, co zna winget - także narzędzia typu Intel XTU, więc przejrzyj listę zanim zostawisz to bez nadzoru.'; Tag=''; Rec=$false; Reboot=$false; Rev=$false; Test=$false}
   @{Id='driverupd'; Cat='Net'; Icon='&#xE895;'; Title='Aktualizacje sterowników (Windows Update)';
     Desc='Otwiera oficjalny ekran opcjonalnych aktualizacji - Ty widzisz listę i sam wybierasz, co zainstalować.'; Tag=''; Rec=$false; Reboot=$false; Rev=$false; Test=$false}
 
@@ -4258,6 +4258,7 @@ $Tasks = @(
   @{Id='t_winsat';  Cat='Tools'; Icon='&#xE9D2;'; Title='Ocena wydajności WinSAT';Desc='Test i wyniki w konsoli obok.'; Tag='Wolne'; Rec=$false; Reboot=$false; Tool=$true}
   @{Id='t_rstrui';  Cat='Tools'; Icon='&#xE777;'; Title='Przywracanie systemu';   Desc='rstrui'; Tag=''; Rec=$false; Reboot=$false; Tool=$true}
   @{Id='t_dl';      Cat='Tools'; Icon='&#xE896;'; Title='Pobierz narzędzia';      Desc='DDU, GPU-Z, HWiNFO, QuickCPU.'; Tag=''; Rec=$false; Reboot=$false; Tool=$true}
+  @{Id='t_winpin';  Cat='Tools'; Icon='&#xE72E;'; Title='Blokady aktualizacji';   Desc='Wskaż programy, których "Aktualizuj programy (winget)" ma nie ruszać - np. narzędzia do podkręcania. Każda blokada jest odwracalna jednym kliknięciem.'; Tag=''; Rec=$false; Reboot=$false; Tool=$true}
 )
 
 # =====================================================================
@@ -5022,7 +5023,13 @@ $A['winupd'] = {
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         Log 'winget nie jest zainstalowany (App Installer ze Sklepu).' 'warn'; return
     }
-    Start-Process -FilePath 'cmd.exe' -ArgumentList '/k','winget upgrade --all --include-unknown --accept-source-agreements --accept-package-agreements'
+    # --disable-interactivity: bez tej flagi winget zatrzymuje sie na
+    # pakietach, ktore wymagaja podania katalogu instalacji (paczki
+    # przenosne, np. Battle.net) i czeka w nieskonczonosc na wpis
+    # w oknie, do ktorego nikt nie zaglada. Z nia po prostu pomija taki
+    # pakiet i idzie dalej - reszta programow zostaje zaktualizowana.
+    Start-Process -FilePath 'cmd.exe' -ArgumentList '/k',
+        'winget upgrade --all --include-unknown --disable-interactivity --accept-source-agreements --accept-package-agreements'
     Log 'Postep w otwartym oknie konsoli.' 'ok'
 }
 
@@ -7949,7 +7956,13 @@ foreach ($t in $Tasks) {
 
 foreach ($t in $Tasks) {
     $tid = $t.Id
-    $Cards[$tid].Button.Add_Click({ Start-Worker 'apply' @($tid) }.GetNewClosure())
+    if ($tid -eq 't_winpin') {
+        # To narzedzie otwiera wlasne okno, wiec nie moze isc przez workera -
+        # watek w tle nie ma prawa dotknac kontrolek WPF.
+        $Cards[$tid].Button.Add_Click({ Pokaz-BlokadyWinget })
+    } else {
+        $Cards[$tid].Button.Add_Click({ Start-Worker 'apply' @($tid) }.GetNewClosure())
+    }
     if ($Cards[$tid].Revert) {
         $Cards[$tid].Revert.Add_Click({ Start-Worker 'revert' @($tid) }.GetNewClosure())
     }
@@ -9715,6 +9728,278 @@ function Nowy-PrzyciskAkt {
     if ($Glowny) { $b.FontWeight = 'SemiBold' }
     return $b
 }
+
+# =====================================================================
+#  BLOKADY AKTUALIZACJI (winget pin)
+#
+#  Zadanie "Aktualizuj programy" puszcza winget upgrade --all. To wygodne
+#  do momentu, w ktorym --all obejmie cos, czego nie chcesz ruszac:
+#  narzedzie do podkrecania, sterownik peryferium, program z wlasnym
+#  systemem licencji. "winget pin" oznacza pakiet jako wylaczony
+#  z aktualizacji zbiorczych - i to jest odwracalne jednym klikiem.
+#
+#  Lista pakietow idzie z "winget export" (JSON, jednoznaczne
+#  identyfikatory), a nie z parsowania tabeli "winget upgrade" - tamta
+#  ma szerokosci kolumn zalezne od szerokosci okna i tlumaczone naglowki.
+# =====================================================================
+
+function Winget-Jest {
+    return [bool](Get-Command winget -ErrorAction SilentlyContinue)
+}
+
+function Pobierz-ListePakietow {
+    $plik = Join-Path $env:TEMP ("OptiWinget_{0}.json" -f [guid]::NewGuid().ToString('N'))
+    $lista = New-Object System.Collections.ArrayList
+    try {
+        $null = & winget export --output $plik --accept-source-agreements --disable-interactivity 2>&1
+        if (Test-Path $plik) {
+            $j = Get-Content -LiteralPath $plik -Raw -Encoding UTF8 | ConvertFrom-Json
+            foreach ($z in @($j.Sources)) {
+                foreach ($p in @($z.Packages)) {
+                    if ($p.PackageIdentifier) { [void]$lista.Add("$($p.PackageIdentifier)") }
+                }
+            }
+        }
+    } catch { }
+    Remove-Item -LiteralPath $plik -Force -ErrorAction SilentlyContinue
+    return ,@($lista | Sort-Object -Unique)
+}
+
+# Zamiast rozbierac tabele na kolumny sprawdzamy, czy identyfikator
+# w ogole wystepuje w jej tresci. Identyfikatory winget sa na tyle
+# charakterystyczne, ze falszywe trafienie praktycznie nie wchodzi w gre.
+function Pobierz-TekstBlokad {
+    try { return ((& winget pin list --accept-source-agreements 2>&1) | Out-String) }
+    catch { return '' }
+}
+
+function Ustaw-Blokade {
+    param([string]$Id, [bool]$Wlacz)
+    try {
+        if ($Wlacz) {
+            $o = (& winget pin add --id $Id --exact --accept-source-agreements --disable-interactivity 2>&1) | Out-String
+        } else {
+            $o = (& winget pin remove --id $Id --exact --accept-source-agreements --disable-interactivity 2>&1) | Out-String
+        }
+        return @{ Ok = ($LASTEXITCODE -eq 0); Tekst = "$o".Trim() }
+    } catch {
+        return @{ Ok = $false; Tekst = $_.Exception.Message }
+    }
+}
+
+function Pokaz-BlokadyWinget {
+
+    $okno = New-Object Windows.Window
+    $okno.Title = 'Blokady aktualizacji'
+    $okno.Width = 640
+    $okno.Height = 620
+    $okno.WindowStyle = 'None'
+    $okno.AllowsTransparency = $true
+    $okno.Background = [Windows.Media.Brushes]::Transparent
+    $okno.ResizeMode = 'NoResize'
+    $okno.ShowInTaskbar = $false
+    try { $okno.Owner = $Window; $okno.WindowStartupLocation = 'CenterOwner' }
+    catch { $okno.WindowStartupLocation = 'CenterScreen' }
+
+    $ramka = New-Object Windows.Controls.Border
+    $ramka.Background      = (Br '#111826')
+    $ramka.BorderBrush     = (Br '#22D3EE')
+    $ramka.BorderThickness = New-Object Windows.Thickness 1
+    $ramka.CornerRadius    = New-Object Windows.CornerRadius 16
+    $ramka.Padding         = New-Object Windows.Thickness 24,20,24,20
+    $okno.Content = $ramka
+
+    $siatka = New-Object Windows.Controls.Grid
+    foreach ($h in @([Windows.GridLength]::Auto,
+                     [Windows.GridLength]::Auto,
+                     (New-Object Windows.GridLength(1, [Windows.GridUnitType]::Star)),
+                     [Windows.GridLength]::Auto)) {
+        $rd = New-Object Windows.Controls.RowDefinition
+        $rd.Height = $h
+        $siatka.RowDefinitions.Add($rd)
+    }
+    $ramka.Child = $siatka
+
+    # ---------------- naglowek ----------------
+    $glowa = New-Object Windows.Controls.StackPanel
+    [Windows.Controls.Grid]::SetRow($glowa, 0)
+    $siatka.Children.Add($glowa) | Out-Null
+
+    $tytul = New-Object Windows.Controls.TextBlock
+    $tytul.Text = 'Blokady aktualizacji'
+    $tytul.Foreground = (Br '#EAF2F8')
+    $tytul.FontSize = 19
+    $tytul.FontWeight = 'SemiBold'
+    $glowa.Children.Add($tytul) | Out-Null
+
+    $pod = New-Object Windows.Controls.TextBlock
+    $pod.Text = 'Zaznaczone programy zostaną pominięte przez "Aktualizuj programy (winget)". Nie blokuje to ich własnych aktualizatorów ani ręcznej instalacji.'
+    $pod.Foreground = (Br '#9FB3C8')
+    $pod.FontSize = 12
+    $pod.TextWrapping = 'Wrap'
+    $pod.Margin = New-Object Windows.Thickness 0,4,0,12
+    $glowa.Children.Add($pod) | Out-Null
+
+    # ---------------- filtr ----------------
+    $filtr = New-Object Windows.Controls.TextBox
+    $filtr.FontSize = 12.5
+    $filtr.Padding = New-Object Windows.Thickness 8,5,8,6
+    $filtr.Margin = New-Object Windows.Thickness 0,0,0,10
+    $filtr.Background = (Br '#0B121D')
+    $filtr.Foreground = (Br '#EAF2F8')
+    $filtr.BorderBrush = (Br '#1E2A3A')
+    $filtr.CaretBrush = (Br '#22D3EE')
+    $filtr.ToolTip = 'Filtruj listę'
+    [Windows.Controls.Grid]::SetRow($filtr, 1)
+    $siatka.Children.Add($filtr) | Out-Null
+
+    # ---------------- lista ----------------
+    $przewijak = New-Object Windows.Controls.ScrollViewer
+    $przewijak.VerticalScrollBarVisibility = 'Auto'
+    $przewijak.HorizontalScrollBarVisibility = 'Disabled'
+    [Windows.Controls.Grid]::SetRow($przewijak, 2)
+    $siatka.Children.Add($przewijak) | Out-Null
+
+    $host_ = New-Object Windows.Controls.StackPanel
+    $przewijak.Content = $host_
+
+    # ---------------- stopka ----------------
+    $stopka = New-Object Windows.Controls.Grid
+    $stopka.Margin = New-Object Windows.Thickness 0,14,0,0
+    foreach ($w in @((New-Object Windows.GridLength(1, [Windows.GridUnitType]::Star)),
+                     [Windows.GridLength]::Auto)) {
+        $cd = New-Object Windows.Controls.ColumnDefinition
+        $cd.Width = $w
+        $stopka.ColumnDefinitions.Add($cd)
+    }
+    [Windows.Controls.Grid]::SetRow($stopka, 3)
+    $siatka.Children.Add($stopka) | Out-Null
+
+    $stan = New-Object Windows.Controls.TextBlock
+    $stan.Foreground = (Br '#9FB3C8')
+    $stan.FontSize = 12
+    $stan.TextWrapping = 'Wrap'
+    $stan.VerticalAlignment = 'Center'
+    [Windows.Controls.Grid]::SetColumn($stan, 0)
+    $stopka.Children.Add($stan) | Out-Null
+
+    $przyciski = New-Object Windows.Controls.StackPanel
+    $przyciski.Orientation = 'Horizontal'
+    [Windows.Controls.Grid]::SetColumn($przyciski, 1)
+    $stopka.Children.Add($przyciski) | Out-Null
+
+    $bOdsw = Nowy-PrzyciskAkt 'Odśwież'  '#151E2C' '#9FB3C8'
+    $bZam  = Nowy-PrzyciskAkt 'Zamknij'  '#22D3EE' '#04121A' -Glowny
+    $bZam.Margin = New-Object Windows.Thickness 0
+    $przyciski.Children.Add($bOdsw) | Out-Null
+    $przyciski.Children.Add($bZam)  | Out-Null
+
+    $odswiezUI = {
+        try { $okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render) } catch { }
+    }.GetNewClosure()
+
+    $script:PinWiersze = @()
+
+    $zastosujFiltr = {
+        $f = "$($filtr.Text)".Trim().ToLower()
+        $widoczne = 0
+        foreach ($w in $script:PinWiersze) {
+            if (-not $f -or $w.Id.ToLower().Contains($f)) { $w.Box.Visibility = 'Visible'; $widoczne++ }
+            else { $w.Box.Visibility = 'Collapsed' }
+        }
+        if ($f) { $stan.Text = "Pasuje: $widoczne z $($script:PinWiersze.Count)" }
+    }.GetNewClosure()
+
+    $wczytaj = {
+        $host_.Children.Clear()
+        $script:PinWiersze = @()
+        $stan.Foreground = (Br '#9FB3C8')
+        $stan.Text = 'Wczytuję listę programów...'
+        $bOdsw.IsEnabled = $false
+        & $odswiezUI
+
+        if (-not (Winget-Jest)) {
+            $stan.Foreground = (Br '#FBBF24')
+            $stan.Text = 'Nie znaleziono winget. Zainstaluj "Instalator aplikacji" ze Sklepu Microsoft.'
+            $bOdsw.IsEnabled = $true
+            return
+        }
+
+        $pakiety = Pobierz-ListePakietow
+        $blokady = Pobierz-TekstBlokad
+
+        if ($pakiety.Count -eq 0) {
+            $stan.Foreground = (Br '#FBBF24')
+            $stan.Text = 'winget nie zwrócił żadnych pakietów. Sprawdź połączenie z internetem.'
+            $bOdsw.IsEnabled = $true
+            return
+        }
+
+        $ileBlok = 0
+        foreach ($id in $pakiety) {
+            $zablok = $false
+            try { $zablok = ($blokady -match [regex]::Escape($id)) } catch { }
+            if ($zablok) { $ileBlok++ }
+
+            $wiersz = New-Object Windows.Controls.Border
+            $wiersz.Background = (Br '#0E1724')
+            $wiersz.CornerRadius = New-Object Windows.CornerRadius 8
+            $wiersz.Padding = New-Object Windows.Thickness 12,7,12,8
+            $wiersz.Margin  = New-Object Windows.Thickness 0,0,8,5
+
+            $cb = New-Object Windows.Controls.CheckBox
+            $cb.Content = $id
+            $cb.Foreground = $(if ($zablok) { Br '#FBBF24' } else { Br '#C7D6E6' })
+            $cb.FontSize = 12.5
+            $cb.IsChecked = $zablok
+            $cb.ToolTip = 'Zaznacz, żeby pominąć ten program przy aktualizacji zbiorczej'
+            $wiersz.Child = $cb
+
+            $host_.Children.Add($wiersz) | Out-Null
+            $script:PinWiersze += [pscustomobject]@{ Id = $id; Box = $wiersz; Check = $cb }
+
+            $klik = {
+                param($s, $e)
+                $chce = [bool]$s.IsChecked
+                $s.IsEnabled = $false
+                $stan.Foreground = (Br '#9FB3C8')
+                $stan.Text = $(if ($chce) { "Blokuję $id..." } else { "Zdejmuję blokadę z $id..." })
+                & $odswiezUI
+
+                $w = Ustaw-Blokade $id $chce
+                if ($w.Ok) {
+                    $s.Foreground = $(if ($chce) { Br '#FBBF24' } else { Br '#C7D6E6' })
+                    $stan.Foreground = (Br '#34D399')
+                    $stan.Text = $(if ($chce) { "$id - pominięty przy aktualizacjach" } else { "$id - znowu aktualizowany" })
+                    Add-Log $(if ($chce) { "Zablokowano aktualizacje: $id" } else { "Odblokowano aktualizacje: $id" }) 'ok'
+                } else {
+                    # cofamy zaznaczenie, zeby okno nie klamalo o stanie
+                    $s.IsChecked = -not $chce
+                    $stan.Foreground = (Br '#F43F5E')
+                    $krotki = "$($w.Tekst)"
+                    if ($krotki.Length -gt 140) { $krotki = $krotki.Substring(0,140) + '...' }
+                    $stan.Text = "Nie udało się: $krotki"
+                    Add-Log "winget pin nie zadzialal dla $id" 'err'
+                }
+                $s.IsEnabled = $true
+            }.GetNewClosure()
+
+            $cb.Add_Click($klik)
+        }
+
+        $stan.Foreground = (Br '#9FB3C8')
+        $stan.Text = "Programów: $($pakiety.Count)   •   zablokowanych: $ileBlok"
+        $bOdsw.IsEnabled = $true
+    }.GetNewClosure()
+
+    $filtr.Add_TextChanged($zastosujFiltr)
+    $bOdsw.Add_Click({ & $wczytaj }.GetNewClosure())
+    $bZam.Add_Click({ $okno.Close() }.GetNewClosure())
+
+    $okno.Add_ContentRendered({ & $wczytaj }.GetNewClosure())
+    $okno.ShowDialog() | Out-Null
+}
+
 
 # Po aktualizacji program dotad po prostu wstawal - bez slowa o tym,
 # co sie wlasciwie zmienilo. Ten ekran pokazuje sie raz, przy pierwszym

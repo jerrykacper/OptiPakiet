@@ -5,7 +5,7 @@ Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle
 
 ---
 
-## OptiLauncher 7.9.1
+## OptiLauncher 7.9.2
 
 Optymalizacja i diagnostyka komputera.
 
@@ -94,6 +94,18 @@ Zanim cokolwiek zostanie podmienione, pobrany plik przechodzi dwa
 sprawdzenia: suma kontrolna SHA256 musi zgadzać się z manifestem,
 a składnia skryptu musi dać się sparsować. Poprzednia wersja zostaje obok
 jako `.bak` — jeśli nowa nie wstanie w ciągu kilku sekund, wraca stara.
+
+### Blokady aktualizacji
+
+Zadanie „Aktualizuj programy (winget)" puszcza `winget upgrade --all`.
+Wygodne do momentu, w którym `--all` obejmie coś, czego nie chcesz ruszać —
+narzędzie do podkręcania, sterownik peryferium, program z własnym systemem
+licencji.
+
+Narzędzia → **Blokady aktualizacji** pokazują listę zainstalowanych
+pakietów; zaznaczone zostaną pominięte przy aktualizacji zbiorczej.
+Pod spodem działa `winget pin`, więc blokada jest zdejmowalna jednym
+kliknięciem i nie rusza niczego poza danymi wingeta.
 
 ### Baza opisów
 
