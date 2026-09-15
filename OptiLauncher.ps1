@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.4.0'
+$AppWersja  = '8.5.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1418,23 +1418,27 @@ function Zapamietaj-Aktualizacje {
 
 # Pobieranie pliku aktualizacji.
 #
-# CZTERY podejscia, ktore nie zadzialaly u uzytkownika - nie wracac do nich:
-#   1. Zdarzenia WebClient - odpalaja sie na watku puli bez runspace'u
-#      PowerShella i ubijaja caly proces.
-#   2. Runspace + DispatcherTimer - zegar nie tykal w modalnym oknie.
-#   3. Wlasna petla na HttpWebRequest - wisiala na GetResponse.
-#   4. Runspace + petla pompujaca komunikaty - konsola pokazala, ze
-#      funkcja postepu nie jest wolana ani razu, wiec zatrzymywalo sie
-#      jeszcze przed petla.
+# Historia tego miejsca jest pouczajaca: cztery razy przepisywalem sposob
+# pobierania, a zepsute bylo raportowanie postepu. Scriptblocki tworzone
+# w uchwycie klikniecia nie przechwytywaly $bar ani $stan, bo
+# GetNewClosure() bierze tylko zmienne z BIEZACEGO zakresu lokalnego -
+# leciał wyjatek "IsIndeterminate cannot be found", po cichu polkniety
+# przez catch. Stad wrazenie, ze pobieranie stoi.
 #
-# Wspolny mianownik tamtych czterech: kazde dokladalo wlasna maszynerie
-# miedzy klikniecie a pobranie. Tutaj nie ma zadnej. Jedno wywolanie,
-# to samo, ktorym schodzi manifest, prosto na watku okna. Plik ma pol
-# megabajta, wiec okno zamarza na moment - i to jest cena, ktora warto
-# zaplacic za aktualizacje, ktora w ogole dziala.
-#
-# Kazdy krok idzie do konsoli. Jesli cokolwiek jeszcze kiedys stanie,
-# ostatni wpis powie gdzie, zamiast zostawiac nas z animowanym paskiem.
+# Dlatego teraz: droga glowna czyta odpowiedz kawalkami, zeby byly
+# prawdziwe procenty, a gdy cokolwiek na niej zawiedzie - wracamy do
+# jednego wywolania Invoke-WebRequest, tego samego, ktorym schodzi
+# manifest i ktore przeszlo aktualizacje 8.4. Kazdy krok idzie do konsoli.
+function Pobierz-Prosto {
+    param([string]$Url, [string]$Cel)
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $Cel -UseBasicParsing -TimeoutSec 90 -ErrorAction Stop
+        return ''
+    } catch {
+        return "$($_.Exception.Message)"
+    }
+}
+
 function Pobierz-ZPostepem {
     param([string]$Url, [string]$Cel, [int64]$Rozmiar, $Okno, [scriptblock]$Postep, [scriptblock]$Koniec)
 
@@ -1446,20 +1450,58 @@ function Pobierz-ZPostepem {
             [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
     } catch { }
 
-    # Pasek nie udaje, ze zna postep - bo go nie zna. Przy pol megabajta
-    # to i tak chwila, a udawany procent bylby klamstwem.
-    try {
-        & $Postep -1 0 0
-        $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render)
-    } catch { }
-
     $blad = ''
+    $udaloSieZPostepem = $false
+    $we = $null; $wy = $null; $odp = $null
+
     try {
-        Invoke-WebRequest -Uri $Url -OutFile $Cel -UseBasicParsing -TimeoutSec 90 -ErrorAction Stop
+        $req = [System.Net.HttpWebRequest]::Create($Url)
+        $req.UserAgent        = 'OptiLauncher'
+        $req.Timeout          = 20000
+        $req.ReadWriteTimeout = 20000
+
+        $odp  = $req.GetResponse()
+        $caly = [int64]$odp.ContentLength
+        if ($caly -le 0) { $caly = $Rozmiar }
+
+        $we  = $odp.GetResponseStream()
+        $wy  = [System.IO.File]::Create($Cel)
+        $buf = New-Object byte[] 32768
+        $ile = [int64]0
+        $ostatnie = [Environment]::TickCount
+
+        while (($n = $we.Read($buf, 0, $buf.Length)) -gt 0) {
+            $wy.Write($buf, 0, $n)
+            $ile = $ile + $n
+            if (([Environment]::TickCount - $ostatnie) -ge 120) {
+                $ostatnie = [Environment]::TickCount
+                $proc = 0
+                if ($caly -gt 0) { $proc = [int][Math]::Min(99, (100 * $ile / $caly)) }
+                & $Postep $proc $ile $caly
+                $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render)
+            }
+        }
+
+        $wy.Close(); $wy = $null
+        $we.Close(); $we = $null
+        $odp.Close(); $odp = $null
+        $udaloSieZPostepem = $true
         Add-Log 'Aktualizacja: pobieranie zakonczone.' 'info'
     } catch {
-        $blad = "$($_.Exception.Message)"
-        Add-Log "Aktualizacja: blad pobierania - $blad" 'err'
+        Add-Log "Aktualizacja: postep niedostepny ($($_.Exception.Message)) - pobieram bez niego." 'warn'
+        if ($wy)  { try { $wy.Close() }  catch { } }
+        if ($we)  { try { $we.Close() }  catch { } }
+        if ($odp) { try { $odp.Close() } catch { } }
+    }
+
+    if (-not $udaloSieZPostepem) {
+        # Droga zapasowa - bez procentow, ale sprawdzona.
+        try { & $Postep -1 0 0 } catch { }
+        try { $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render) } catch { }
+        try { Remove-Item -LiteralPath $Cel -Force -ErrorAction SilentlyContinue } catch { }
+        $blad = Pobierz-Prosto $Url $Cel
+        if ($blad) { Add-Log "Aktualizacja: blad pobierania - $blad" 'err' }
+        else       { Add-Log 'Aktualizacja: pobieranie zakonczone (bez postepu).' 'info' }
     }
 
     if (-not $blad) {
@@ -2170,7 +2212,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.4'
+$AppVersion = '8.5'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -11098,7 +11140,7 @@ function Pokaz-Aktualizacje {
             } elseif ($Caly -gt 0) {
                 $lBar.IsIndeterminate = $false
                 $lBar.Value = $Proc
-                $lStan.Text = ('Pobrano {0:N0} KB' -f ($Ile / 1KB))
+                $lStan.Text = ('Pobieram... {0}%   ({1:N0} z {2:N0} KB)' -f $Proc, ($Ile / 1KB), ($Caly / 1KB))
             } else {
                 $lStan.Text = ('Pobieram... {0:N1} MB' -f ($Ile / 1MB))
             }
