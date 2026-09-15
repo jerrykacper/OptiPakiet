@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.3.5'
+$AppWersja  = '8.4.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2170,7 +2170,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.3.5'
+$AppVersion = '8.4'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -11045,6 +11045,18 @@ function Pokaz-Aktualizacje {
     }.GetNewClosure()
 
     $bAkt.Add_Click({
+        # UWAGA: GetNewClosure() przechwytuje wylacznie zmienne z biezacego
+        # zakresu LOKALNEGO. $bar, $stan i $okno sa lokalne dla funkcji okna,
+        # a nie dla tego uchwytu - wiec scriptblocki tworzone nizej ich NIE
+        # przechwycily i przy wywolaniu trafialy w cokolwiek innego o tej
+        # nazwie. Efekt: "The property 'IsIndeterminate' cannot be found on
+        # this object", po cichu polkniete przez catch, i aktualizacja, ktora
+        # pobierala plik, a potem nie robila nic. Kopie lokalne to naprawiaja.
+        $lBar  = $bar
+        $lStan = $stan
+        $lOkno = $okno
+        $lInfo = $Info
+
         $bAkt.IsEnabled = $false
         $bPomin.IsEnabled = $false
         $bPozniej.IsEnabled = $false
@@ -11081,16 +11093,14 @@ function Pokaz-Aktualizacje {
             param($Proc, $Ile, $Caly)
             if ($Proc -lt 0) {
                 # Nie znamy postepu - pasek pracuje, ale nie klamie liczba.
-                $bar.IsIndeterminate = $true
-                $stan.Text = 'Pobieram plik aktualizacji...'
+                $lBar.IsIndeterminate = $true
+                $lStan.Text = 'Pobieram plik aktualizacji...'
             } elseif ($Caly -gt 0) {
-                $bar.IsIndeterminate = $false
-                $bar.Value = $Proc
-                $stan.Text = ('Pobieram... {0}%   ({1:N1} z {2:N1} MB)' -f $Proc, ($Ile / 1MB), ($Caly / 1MB))
+                $lBar.IsIndeterminate = $false
+                $lBar.Value = $Proc
+                $lStan.Text = ('Pobrano {0:N0} KB' -f ($Ile / 1KB))
             } else {
-                # Serwer nie podal dlugosci - pokazujemy same megabajty
-                # zamiast udawac procent, ktorego nie znamy.
-                $stan.Text = ('Pobieram... {0:N1} MB' -f ($Ile / 1MB))
+                $lStan.Text = ('Pobieram... {0:N1} MB' -f ($Ile / 1MB))
             }
         }.GetNewClosure()
 
@@ -11098,9 +11108,9 @@ function Pokaz-Aktualizacje {
             param($Blad)
             if ($Blad) { & $pokazBlad "Nie udało się pobrać pliku: $Blad"; return }
 
-            $bar.IsIndeterminate = $false
-            $bar.Value = 100
-            $stan.Text = 'Sprawdzam sumę kontrolną...'
+            $lBar.IsIndeterminate = $false
+            $lBar.Value = 100
+            $lStan.Text = 'Sprawdzam sumę kontrolną...'
             Add-Log 'Aktualizacja: plik pobrany, sprawdzam sumę kontrolną.' 'info'
 
             if (-not (Sprawdz-Sume $cel $sha)) {
@@ -11109,30 +11119,33 @@ function Pokaz-Aktualizacje {
                 return
             }
 
-            $raport = { param($T) $stan.Text = "$T"; Add-Log "Aktualizacja: $T" 'info' }.GetNewClosure()
-            if ($etap -eq 'inno') { $wynik = Zakoncz-Instalator  $Info $cel $raport }
-            else                  { $wynik = Zakoncz-PodmianePs1 $Info $cel $raport }
+            # Ta sama pulapka co wyzej, poziom glebiej: $lStan jest lokalne
+            # dla uchwytu klikniecia, nie dla tego scriptblocka.
+            $kStan = $lStan
+            $raport = { param($T) $kStan.Text = "$T"; Add-Log "Aktualizacja: $T" 'info' }.GetNewClosure()
+            if ($etap -eq 'inno') { $wynik = Zakoncz-Instalator  $lInfo $cel $raport }
+            else                  { $wynik = Zakoncz-PodmianePs1 $lInfo $cel $raport }
 
             if (-not $wynik.Ok) { & $pokazBlad $wynik.Blad; return }
 
             Add-Log 'Aktualizacja: plik podmieniony, restartuję program.' 'ok'
 
-            $stan.Foreground = (Br '#34D399')
-            $stan.Text = 'Gotowe - program zamknie się i uruchomi ponownie.'
+            $lStan.Foreground = (Br '#34D399')
+            $lStan.Text = 'Gotowe - program zamknie się i uruchomi ponownie.'
 
-            # Zamkniecie przez zegar, nie przez Start-Sleep: usypianie
-            # watku interfejsu zatrzymaloby tez rysowanie tego komunikatu.
-            $zegar = New-Object System.Windows.Threading.DispatcherTimer
-            $zegar.Interval = [TimeSpan]::FromMilliseconds(1100)
-            $zegar.Add_Tick({
-                $zegar.Stop()
-                try { $okno.Close() } catch { }
-                if ($wynik.Zamknij) {
-                    $null = $Window.Dispatcher.BeginInvoke([action]{ try { $Window.Close() } catch { } },
-                            [Windows.Threading.DispatcherPriority]::Background)
-                }
-            }.GetNewClosure())
-            $zegar.Start()
+            # Chwila na przeczytanie komunikatu - bez zegara i bez usypiania
+            # watku. Zegary w tym oknie modalnym juz raz nie zatykaly, a
+            # Start-Sleep zatrzymalby rysowanie. Wiec pompujemy sami.
+            for ($i = 0; $i -lt 9; $i++) {
+                try { $lOkno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Background) } catch { }
+                Start-Sleep -Milliseconds 120
+            }
+
+            try { $lOkno.Close() } catch { }
+            if ($wynik.Zamknij) {
+                Add-Log 'Aktualizacja: zamykam program, zaraz wstanie nowa wersja.' 'ok'
+                try { $Window.Close() } catch { }
+            }
         }.GetNewClosure()
 
         $r = Pobierz-ZPostepem $url $cel $roz $okno $postep $koniec

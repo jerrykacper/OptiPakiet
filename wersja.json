@@ -2,17 +2,17 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.3.5",
+    "wersja": "8.4.0",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "F29459860666BD7EC83029506AC139E900AEA848A00918607633424A2621B2C5",
-      "rozmiar": 525459
+      "sha256": "BDE43412B10501E19999324881C32786256D3BB4A9694C50FEBDAD327AF307CB",
+      "rozmiar": 526079
     },
     "zmiany": [
-      "Pobieranie aktualizacji sprowadzone do jednego wywolania - bez posrednikow, ktore po kolei zawodzily",
-      "Kazdy krok aktualizacji widac w konsoli programu",
+      "Aktualizacja przechodzi wreszcie do konca - blad byl w przekazywaniu kontrolek, nie w pobieraniu",
+      "Po podmianie pliku program zamyka sie i uruchamia ponownie sam",
       "Dziesiaty motyw kolorystyczny: Szmaragd",
       "Historia czasow rozruchu i lista programow opozniajacych start"
     ]
@@ -29,9 +29,9 @@
     "zmiany": []
   },
   "baza": {
-    "wersja": 6,
+    "wersja": 7,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "9C6FB81FF0C5291441BFE5DA8EF374020A1C049538DA53B29D61A5E73B66F2A1",
+    "sha256": "F40A343F3D7881E0A9E259A32BFB73B246D7F85509F6158CA0D3947671951028",
     "rozmiar": 27177
   }
 }
