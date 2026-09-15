@@ -2,18 +2,17 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.3.0",
+    "wersja": "8.3.1",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "797286A12876586D363A35C45BABBC30232D3CF4D7E173E9CF53E8DE0597606D",
-      "rozmiar": 525808
+      "sha256": "345007DC8531284635868BE6E26714328EDFF5AE605793D2C292D14B2FFCF0E8",
+      "rozmiar": 525810
     },
     "zmiany": [
-      "Dziesiaty motyw kolorystyczny: Szmaragd - zielen zamiast cyjanu",
-      "Kazdy etap aktualizacji wypisuje sie w konsoli programu",
-      "Historia czasow rozruchu na Pulpicie i pelna lista programow opozniajacych start"
+      "Wydanie kontrolne - sprawdzamy, na ktorym etapie zatrzymuje sie pobieranie",
+      "Baza opisow rozszerzona do 104 pozycji"
     ]
   },
   "lacze": {
@@ -28,9 +27,9 @@
     "zmiany": []
   },
   "baza": {
-    "wersja": 3,
+    "wersja": 4,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "D2F0F5BCA6C78C49AF41349C0F1B704EE58704E3A9D3229A92F54D4CA35577FD",
-    "rozmiar": 26504
+    "sha256": "F59D8D539D55E41B315DC38DC31DFF43BFB16EEC11A757DF818972417361D4E0",
+    "rozmiar": 27177
   }
 }

@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.3.0'
+$AppWersja  = '8.3.1'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2186,7 +2186,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.3'
+$AppVersion = '8.3.1'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))

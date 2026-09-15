@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "wersja": 3,
+  "wersja": 4,
   "wydano": "2026-09-15",
   "wpisy": {
     "explorer": {
@@ -608,6 +608,24 @@
       "zrodlo": "Adobe",
       "ocena": "bezpieczne",
       "opis": "Pośrednik komunikacji między składnikami Creative Cloud. Programy Adobe uruchomią się bez niego."
+    },
+    "msiexec": {
+      "nazwa": "Instalator Windows",
+      "zrodlo": "Windows",
+      "ocena": "zostaw",
+      "opis": "Pojawia się tylko na czas instalowania lub usuwania programu i sam znika. Zamknięcie w trakcie potrafi zostawić program w połowie zainstalowany."
+    },
+    "searchprotocolhost": {
+      "nazwa": "Host protokołu wyszukiwania",
+      "zrodlo": "Windows",
+      "ocena": "zostaw",
+      "opis": "Element indeksowania plików. Pracuje chwilami i sam kończy."
+    },
+    "sihost64": {
+      "nazwa": "Host powłoki",
+      "zrodlo": "Windows",
+      "ocena": "zostaw",
+      "opis": "Wariant hosta infrastruktury powłoki. To samo co sihost."
     }
   },
   "aliasy": {
