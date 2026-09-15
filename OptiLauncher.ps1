@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.3'
+$AppWersja  = '7.9.4'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1150,7 +1150,10 @@ function Sprawdz-AktualizacjeWTle {
                 . ([scriptblock]::Create($Kod))
                 $wynik = Sprawdz-Wszystko -Wymuszone:$Wymus
                 if ($wynik -and $Okno) {
-                    $Okno.Dispatcher.Invoke([action]{ & $Callback $wynik })
+                    # BeginInvoke, nie Invoke: callback otwiera okno modalne,
+                    # a Invoke trzymalby watek w tle az do jego zamkniecia -
+                    # razem z zagniezdzona petla komunikatow w srodku.
+                    $null = $Okno.Dispatcher.BeginInvoke([action]{ & $Callback $wynik })
                 }
             } catch { }
         })
@@ -1245,22 +1248,35 @@ Remove-Item -LiteralPath $Nowy -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue
 '@
 
-function Start-AktualizacjaPs1 {
-    param($Info, [scriptblock]$Postep)
+# Sciezka docelowa wlasnego pliku - potrzebna i przy pobieraniu,
+# i przy podmianie.
+function Sciezka-Wlasna {
+    $x = $PSCommandPath
+    if (-not $x) { $x = $MyInvocation.MyCommand.Path }
+    return $x
+}
 
-    if ($Postep) { & $Postep 'Pobieram nowa wersje...' }
+function Plik-TymczasowyPs1 {
+    param($Info)
+    return (Join-Path $env:TEMP ("OptiLauncher_{0}.ps1" -f $Info.Wersja))
+}
 
-    $mojaSciezka = $PSCommandPath
-    if (-not $mojaSciezka) { $mojaSciezka = $MyInvocation.MyCommand.Path }
+function Plik-TymczasowySetup {
+    param($Info)
+    return (Join-Path $env:TEMP ("OptiPakiet-{0}-Setup.exe" -f $Info.Wersja))
+}
+
+# Czesc po pobraniu, wspolna dla trybu konsolowego i okna z paskiem
+# postepu: sprawdzenie skladni, kopia zapasowa, posrednik, restart.
+function Zakoncz-PodmianePs1 {
+    param($Info, [string]$Tmp, [scriptblock]$Postep)
+
+    $mojaSciezka = Sciezka-Wlasna
     if (-not $mojaSciezka) { return @{ Ok = $false; Blad = 'Nie wiem, gdzie lezy wlasny plik.' } }
 
-    $tmp = Join-Path $env:TEMP ("OptiLauncher_{0}.ps1" -f $Info.Wersja)
-    $p = Pobierz-Plik $Info.Ps1Url $tmp $Info.Ps1Sha
-    if (-not $p.Ok) { return $p }
-
     if ($Postep) { & $Postep 'Sprawdzam pobrany plik...' }
-    if (-not (Test-SkladniPliku $tmp)) {
-        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+    if (-not (Test-SkladniPliku $Tmp)) {
+        Remove-Item -LiteralPath $Tmp -Force -ErrorAction SilentlyContinue
         return @{ Ok = $false; Blad = 'Pobrany plik ma blad skladni - aktualizacja przerwana.' }
     }
 
@@ -1281,10 +1297,25 @@ function Start-AktualizacjaPs1 {
 
     $psexe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $argumenty = @('-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File', "`"$swap`"",
-                   '-ProcId', $PID, '-Stary', "`"$mojaSciezka`"", '-Nowy', "`"$tmp`"", '-Kopia', "`"$kopia`"")
+                   '-ProcId', $PID, '-Stary', "`"$mojaSciezka`"", '-Nowy', "`"$Tmp`"", '-Kopia', "`"$kopia`"")
     Start-Process $psexe -ArgumentList $argumenty -WindowStyle Hidden | Out-Null
 
     return @{ Ok = $true; Zamknij = $true }
+}
+
+# Wersja synchroniczna - uzywa jej tryb konsolowy, gdzie zamrozenie
+# niczego nie psuje, bo i tak nie ma okna.
+function Start-AktualizacjaPs1 {
+    param($Info, [scriptblock]$Postep)
+
+    if (-not (Sciezka-Wlasna)) { return @{ Ok = $false; Blad = 'Nie wiem, gdzie lezy wlasny plik.' } }
+    if ($Postep) { & $Postep 'Pobieram nowa wersje...' }
+
+    $tmp = Plik-TymczasowyPs1 $Info
+    $p = Pobierz-Plik $Info.Ps1Url $tmp $Info.Ps1Sha
+    if (-not $p.Ok) { return $p }
+
+    return (Zakoncz-PodmianePs1 $Info $tmp $Postep)
 }
 
 
@@ -1295,27 +1326,33 @@ function Start-AktualizacjaPs1 {
 # i podniesie wersje w Ustawieniach Windows. /SILENT zostawia pasek
 # postepu - /VERYSILENT nie pokazuje nic, co przy kilkudziesieciu
 # sekundach ciszy wyglada jak zawieszony program.
-function Start-AktualizacjaInno {
-    param($Info, [scriptblock]$Postep)
-
-    if (-not $Info.SetupUrl) { return @{ Ok = $false; Blad = 'Manifest nie podaje instalatora.' } }
-
-    if ($Postep) { & $Postep 'Pobieram instalator...' }
-    $tmp = Join-Path $env:TEMP ("OptiPakiet-{0}-Setup.exe" -f $Info.Wersja)
-    $p = Pobierz-Plik $Info.SetupUrl $tmp $Info.SetupSha
-    if (-not $p.Ok) { return $p }
+function Zakoncz-Instalator {
+    param($Info, [string]$Tmp, [scriptblock]$Postep)
 
     Zapamietaj-Aktualizacje $Info
 
     if ($Postep) { & $Postep 'Uruchamiam instalator...' }
     try {
-        Start-Process -FilePath $tmp `
+        Start-Process -FilePath $Tmp `
             -ArgumentList '/SILENT','/NOCANCEL','/SUPPRESSMSGBOXES','/RESTARTAPPLICATIONS' | Out-Null
     } catch {
         return @{ Ok = $false; Blad = "Nie udalo sie uruchomic instalatora: $($_.Exception.Message)" }
     }
 
     return @{ Ok = $true; Zamknij = $true }
+}
+
+function Start-AktualizacjaInno {
+    param($Info, [scriptblock]$Postep)
+
+    if (-not $Info.SetupUrl) { return @{ Ok = $false; Blad = 'Manifest nie podaje instalatora.' } }
+
+    if ($Postep) { & $Postep 'Pobieram instalator...' }
+    $tmp = Plik-TymczasowySetup $Info
+    $p = Pobierz-Plik $Info.SetupUrl $tmp $Info.SetupSha
+    if (-not $p.Ok) { return $p }
+
+    return (Zakoncz-Instalator $Info $tmp $Postep)
 }
 
 
@@ -1333,6 +1370,94 @@ function Zapamietaj-Aktualizacje {
         $u.poZmiany = @($Info.Zmiany)
         Save-UstAkt $u
     } catch { }
+}
+
+# Pobieranie bez blokowania okna.
+#
+# WAZNE: nie przez zdarzenia WebClient. Uchwyty DownloadProgressChanged
+# i DownloadFileCompleted odpalaja sie na watku puli, ktory nie ma
+# runspace'u PowerShella - proba wykonania tam scriptblocka konczy sie
+# nieobsluzonym wyjatkiem i ubiciem calego procesu. Zamiast tego
+# pobieranie idzie we wlasnym runspace i zapisuje postep do wspolnej
+# tablicy, a okno odczytuje ja zegarem. Ten sam wzorzec co worker.
+function Pobierz-ZPostepem {
+    param([string]$Url, [string]$Cel, $Okno, [scriptblock]$Postep, [scriptblock]$Koniec)
+
+    try { Remove-Item -LiteralPath $Cel -Force -ErrorAction SilentlyContinue } catch { }
+
+    $wspolne = [hashtable]::Synchronized(@{ Ile = [int64]0; Caly = [int64]0; Gotowe = $false; Blad = '' })
+
+    try {
+        $rs = [runspacefactory]::CreateRunspace()
+        $rs.ApartmentState = 'STA'
+        $rs.ThreadOptions  = 'ReuseThread'
+        $rs.Open()
+        $rs.SessionStateProxy.SetVariable('S',   $wspolne)
+        $rs.SessionStateProxy.SetVariable('Url', $Url)
+        $rs.SessionStateProxy.SetVariable('Cel', $Cel)
+
+        $ps = [powershell]::Create()
+        $ps.Runspace = $rs
+        $null = $ps.AddScript({
+            try {
+                [Net.ServicePointManager]::SecurityProtocol =
+                    [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
+            } catch { }
+            $wy = $null
+            try {
+                $req = [System.Net.HttpWebRequest]::Create($Url)
+                $req.UserAgent = 'OptiLauncher'
+                $req.Timeout   = 30000
+                $odp = $req.GetResponse()
+                $S.Caly = [int64]$odp.ContentLength
+
+                $we  = $odp.GetResponseStream()
+                $wy  = [System.IO.File]::Create($Cel)
+                $buf = New-Object byte[] 65536
+                while (($n = $we.Read($buf, 0, $buf.Length)) -gt 0) {
+                    $wy.Write($buf, 0, $n)
+                    $S.Ile = [int64]$S.Ile + $n
+                }
+                $wy.Close(); $we.Close(); $odp.Close()
+                $wy = $null
+            } catch {
+                $S.Blad = "$($_.Exception.Message)"
+                if ($wy) { try { $wy.Close() } catch { } }
+            }
+            $S.Gotowe = $true
+        })
+        $uchwyt = $ps.BeginInvoke()
+    } catch {
+        return @{ Ok = $false; Blad = "Nie udalo sie rozpoczac pobierania: $($_.Exception.Message)" }
+    }
+
+    $zegar = New-Object System.Windows.Threading.DispatcherTimer
+    $zegar.Interval = [TimeSpan]::FromMilliseconds(150)
+    $zegar.Add_Tick({
+        $ile  = [int64]$wspolne.Ile
+        $caly = [int64]$wspolne.Caly
+        $proc = 0
+        if ($caly -gt 0) { $proc = [int](100 * $ile / $caly) }
+        try { & $Postep $proc $ile $caly } catch { }
+
+        if ($wspolne.Gotowe) {
+            $zegar.Stop()
+            try { $null = $ps.EndInvoke($uchwyt) } catch { }
+            try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
+            try { & $Koniec "$($wspolne.Blad)" } catch { }
+        }
+    }.GetNewClosure())
+    $zegar.Start()
+
+    return @{ Ok = $true }
+}
+
+function Sprawdz-Sume {
+    param([string]$Plik, [string]$Sha256)
+    if (-not $Sha256) { return $true }
+    $h = ''
+    try { $h = (Get-FileHash -LiteralPath $Plik -Algorithm SHA256).Hash } catch { }
+    return ($h -eq $Sha256.ToUpper())
 }
 
 function Zainstaluj-Aktualizacje {
@@ -2004,7 +2129,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.3'
+$AppVersion = '7.9.4'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -10287,6 +10412,15 @@ function Pokaz-Aktualizacje {
     $stan.Visibility = 'Collapsed'
     $stos.Children.Add($stan) | Out-Null
 
+    $bar = New-Object Windows.Controls.ProgressBar
+    $bar.Minimum = 0
+    $bar.Maximum = 100
+    $bar.Value   = 0
+    $bar.Height  = 6
+    $bar.Margin  = New-Object Windows.Thickness 0,10,0,0
+    $bar.Visibility = 'Collapsed'
+    $stos.Children.Add($bar) | Out-Null
+
     $pasek = New-Object Windows.Controls.StackPanel
     $pasek.Orientation = 'Horizontal'
     $pasek.HorizontalAlignment = 'Right'
@@ -10307,35 +10441,102 @@ function Pokaz-Aktualizacje {
         try { $okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render) } catch { }
     }.GetNewClosure()
 
+    # Pokazanie bledu w jednym miejscu - trzy sciezki moga sie wywrocic
+    # (start pobierania, samo pobieranie, dokonczenie), a kazda musi
+    # oddac uzytkownikowi przyciski.
+    $pokazBlad = {
+        param($T)
+        $bar.Visibility = 'Collapsed'
+        $stan.Visibility = 'Visible'
+        $stan.Foreground = (Br '#F43F5E')
+        $stan.Text = "$T"
+        Add-Log "Aktualizacja nieudana: $T" 'err'
+        $bAkt.IsEnabled = $true
+        $bPomin.IsEnabled = $true
+        $bPozniej.IsEnabled = $true
+    }.GetNewClosure()
+
     $bAkt.Add_Click({
         $bAkt.IsEnabled = $false
         $bPomin.IsEnabled = $false
         $bPozniej.IsEnabled = $false
         $stan.Visibility = 'Visible'
+        $stan.Foreground = (Br '#9FB3C8')
         $stan.Text = 'Przygotowuję...'
-        & $odswiez
+        $bar.Visibility = 'Visible'
+        $bar.IsIndeterminate = $true
+        $bar.Value = 0
 
-        $wynik = Zainstaluj-Aktualizacje $Info {
-            param($t)
-            $stan.Text = $t
-            & $odswiez
+        $tryb = Get-TrybInstalacji
+        if ($Info.PelnaWymag -and $tryb -ne 'inno') {
+            & $pokazBlad 'Ta wersja wymaga pełnej instalacji - pobierz instalator ze strony programu.'
+            return
+        }
+
+        if ($tryb -eq 'inno') {
+            $url = "$($Info.SetupUrl)"; $sha = "$($Info.SetupSha)"
+            $cel = Plik-TymczasowySetup $Info; $etap = 'inno'
+        } else {
+            $url = "$($Info.Ps1Url)";   $sha = "$($Info.Ps1Sha)"
+            $cel = Plik-TymczasowyPs1 $Info; $etap = 'ps1'
+        }
+        if (-not $url) { & $pokazBlad 'Manifest nie podaje pliku do pobrania.'; return }
+
+        $stan.Text = 'Pobieram...'
+
+        $postep = {
+            param($Proc, $Ile, $Caly)
+            if ($Caly -gt 0) {
+                $bar.IsIndeterminate = $false
+                $bar.Value = $Proc
+                $stan.Text = ('Pobieram... {0}%   ({1:N1} z {2:N1} MB)' -f $Proc, ($Ile / 1MB), ($Caly / 1MB))
+            } else {
+                # Serwer nie podal dlugosci - pokazujemy same megabajty
+                # zamiast udawac procent, ktorego nie znamy.
+                $stan.Text = ('Pobieram... {0:N1} MB' -f ($Ile / 1MB))
+            }
         }.GetNewClosure()
 
-        if ($wynik.Ok) {
+        $koniec = {
+            param($Blad)
+            if ($Blad) { & $pokazBlad "Nie udało się pobrać pliku: $Blad"; return }
+
+            $bar.IsIndeterminate = $false
+            $bar.Value = 100
+            $stan.Text = 'Sprawdzam sumę kontrolną...'
+
+            if (-not (Sprawdz-Sume $cel $sha)) {
+                Remove-Item -LiteralPath $cel -Force -ErrorAction SilentlyContinue
+                & $pokazBlad 'Suma kontrolna się nie zgadza - plik odrzucony.'
+                return
+            }
+
+            $raport = { param($T) $stan.Text = "$T" }.GetNewClosure()
+            if ($etap -eq 'inno') { $wynik = Zakoncz-Instalator  $Info $cel $raport }
+            else                  { $wynik = Zakoncz-PodmianePs1 $Info $cel $raport }
+
+            if (-not $wynik.Ok) { & $pokazBlad $wynik.Blad; return }
+
             $stan.Foreground = (Br '#34D399')
             $stan.Text = 'Gotowe - program zamknie się i uruchomi ponownie.'
-            & $odswiez
-            Start-Sleep -Milliseconds 900
-            $okno.Close()
-            if ($wynik.Zamknij) { $Window.Close() }
-        } else {
-            $stan.Foreground = (Br '#F43F5E')
-            $stan.Text = $wynik.Blad
-            Add-Log "Aktualizacja nieudana: $($wynik.Blad)" 'err'
-            $bAkt.IsEnabled = $true
-            $bPomin.IsEnabled = $true
-            $bPozniej.IsEnabled = $true
-        }
+
+            # Zamkniecie przez zegar, nie przez Start-Sleep: usypianie
+            # watku interfejsu zatrzymaloby tez rysowanie tego komunikatu.
+            $zegar = New-Object System.Windows.Threading.DispatcherTimer
+            $zegar.Interval = [TimeSpan]::FromMilliseconds(1100)
+            $zegar.Add_Tick({
+                $zegar.Stop()
+                try { $okno.Close() } catch { }
+                if ($wynik.Zamknij) {
+                    $null = $Window.Dispatcher.BeginInvoke([action]{ try { $Window.Close() } catch { } },
+                            [Windows.Threading.DispatcherPriority]::Background)
+                }
+            }.GetNewClosure())
+            $zegar.Start()
+        }.GetNewClosure()
+
+        $r = Pobierz-ZPostepem $url $cel $okno $postep $koniec
+        if (-not $r.Ok) { & $pokazBlad $r.Blad }
     }.GetNewClosure())
 
     $bPomin.Add_Click({

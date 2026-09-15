@@ -5,7 +5,7 @@ Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle
 
 ---
 
-## OptiLauncher 7.9.3
+## OptiLauncher 7.9.4
 
 Optymalizacja i diagnostyka komputera.
 
