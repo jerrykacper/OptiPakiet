@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.9'
+$AppWersja  = '8.0.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2183,7 +2183,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.9'
+$AppVersion = '8.0'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -2952,8 +2952,8 @@ $XamlText = @'
     <!-- ============ NAWIGACJA ============ -->
     <Style x:Key="Nav" TargetType="RadioButton">
       <Setter Property="Foreground" Value="{StaticResource Muted}"/>
-      <Setter Property="Height" Value="42"/>
-      <Setter Property="Margin" Value="12,2"/>
+      <Setter Property="Height" Value="36"/>
+      <Setter Property="Margin" Value="12,1"/>
       <Setter Property="FontSize" Value="13"/>
       <Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Template">
@@ -3725,7 +3725,7 @@ $XamlText = @'
             <Border Width="1" HorizontalAlignment="Right" Background="#151F2E" Grid.RowSpan="2"/>
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0,14,0,0">
               <StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="29,0,0,7">
+                <StackPanel Orientation="Horizontal" Margin="29,0,0,5">
                   <Border Width="10" Height="2" CornerRadius="1" Background="{StaticResource AccentGrad}"
                           VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
                   <TextBlock Text="PRZEGLĄD" Style="{StaticResource Label}"/>
@@ -3736,7 +3736,7 @@ $XamlText = @'
                 <RadioButton x:Name="NavProc"    Content="Procesy w tle"   GroupName="nav" Tag="&#xE9D9;" Style="{StaticResource Nav}"/>
                 <RadioButton x:Name="NavLink"    Content="Łącze"           GroupName="nav" Tag="&#xE839;" Style="{StaticResource Nav}"/>
                 <RadioButton x:Name="NavDiag"    Content="Diagnostyka"     GroupName="nav" Tag="&#xE9F9;" Style="{StaticResource Nav}"/>
-                <StackPanel Orientation="Horizontal" Margin="29,18,0,7">
+                <StackPanel Orientation="Horizontal" Margin="29,14,0,5">
                   <Border Width="10" Height="2" CornerRadius="1" Background="{StaticResource AccentGrad}"
                           VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
                   <TextBlock Text="OPTYMALIZACJE" Style="{StaticResource Label}"/>
@@ -3748,7 +3748,7 @@ $XamlText = @'
                 <RadioButton x:Name="NavClean" Content="Czyszczenie"     GroupName="nav" Tag="&#xE74D;" Style="{StaticResource Nav}"/>
                 <RadioButton x:Name="NavNet"   Content="Sieć i naprawa"  GroupName="nav" Tag="&#xE968;" Style="{StaticResource Nav}"/>
                 <RadioButton x:Name="NavTools" Content="Narzędzia"       GroupName="nav" Tag="&#xE90F;" Style="{StaticResource Nav}"/>
-                <StackPanel Orientation="Horizontal" Margin="29,18,0,7">
+                <StackPanel Orientation="Horizontal" Margin="29,14,0,5">
                   <Border Width="10" Height="2" CornerRadius="1" Background="{StaticResource AccentGrad}"
                           VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
                   <TextBlock Text="PROGRAM" Style="{StaticResource Label}"/>
@@ -3790,9 +3790,44 @@ $XamlText = @'
         <Grid Grid.Column="1" Margin="26,20,20,0">
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
+
+          <!-- PASEK O DOSTEPNEJ AKTUALIZACJI -->
+          <!-- Widoczny na kazdej zakladce i zostaje do skutku. Okno
+               z lista zmian pokazuje sie raz i mozna je zamknac przez
+               nieuwage; pigulka w pasku tytulu jest maleńka. -->
+          <Border x:Name="AktBanner" Grid.Row="1" Visibility="Collapsed"
+                  Background="#1F2410" BorderBrush="#4A3A12" BorderThickness="1"
+                  CornerRadius="12" Padding="16,11,12,12" Margin="0,0,0,14">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+
+              <TextBlock Grid.Column="0" Text="&#xE896;" FontFamily="Segoe MDL2 Assets"
+                         FontSize="15" Foreground="#FBBF24"
+                         VerticalAlignment="Center" Margin="2,0,13,0"/>
+
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock x:Name="AktBannerTytul" Text="" FontSize="13.5" FontWeight="SemiBold"
+                           Foreground="#FBBF24"/>
+                <TextBlock x:Name="AktBannerOpis" Text="" FontSize="11.5" TextWrapping="Wrap"
+                           Foreground="{StaticResource Dim}" Margin="0,3,12,0"/>
+              </StackPanel>
+
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="AktBannerPokaz"  Content="Zobacz zmiany" Style="{StaticResource Ghost}"
+                        Margin="0,0,8,0"/>
+                <Button x:Name="AktBannerUkryj"  Content="&#xE711;" Style="{StaticResource MiniIcon}"
+                        ToolTip="Ukryj pasek do następnego uruchomienia"/>
+              </StackPanel>
+            </Grid>
+          </Border>
 
           <Grid Grid.Row="0" Margin="0,0,0,16">
             <StackPanel x:Name="PageHead">
@@ -3817,7 +3852,7 @@ $XamlText = @'
             <Border Height="1" VerticalAlignment="Bottom" Background="{StaticResource Line}" Opacity="0.8"/>
           </Grid>
 
-          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
+          <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
             <Grid>
 
               <!-- ============ PULPIT ============ -->
@@ -3889,7 +3924,7 @@ $XamlText = @'
                         <TextBlock Text="pamięć" Foreground="{StaticResource Muted}" FontSize="10.5"/>
                       </StackPanel>
                     </Grid>
-                    <Grid x:Name="SparkHost" Height="94" Margin="0,12,0,0" ClipToBounds="True">
+                    <Grid x:Name="SparkHost" Height="78" Margin="0,10,0,0" ClipToBounds="True">
                       <Border Height="1" VerticalAlignment="Center" Background="#16202F"/>
                       <Border Height="1" VerticalAlignment="Top" Background="#131C2A"/>
                       <Polyline x:Name="SparkRam" Stroke="{StaticResource Violet}" StrokeThickness="1.5"
@@ -4196,7 +4231,7 @@ $XamlText = @'
           </Border>
 
           <!-- PASEK AKCJI -->
-          <Border x:Name="ActionBar" Grid.Row="2" Background="{StaticResource Panel}" CornerRadius="14" Padding="18,13" Margin="0,16,0,18"
+          <Border x:Name="ActionBar" Grid.Row="3" Background="{StaticResource Panel}" CornerRadius="14" Padding="18,13" Margin="0,16,0,18"
                   BorderBrush="{StaticResource Line}" BorderThickness="1">
             <Border.Effect>
               <DropShadowEffect Color="#000000" Opacity="0.22" BlurRadius="14" ShadowDepth="2" Direction="270"/>
@@ -4221,9 +4256,9 @@ $XamlText = @'
         </Grid>
 
         <!-- KONSOLA -->
-        <Border x:Name="ConsolePane" Grid.Column="2" Width="372" ClipToBounds="True"
+        <Border x:Name="ConsolePane" Grid.Column="2" Width="320" ClipToBounds="True"
                 Background="{StaticResource Panel}" CornerRadius="0,0,16,0">
-          <Grid Width="336" Margin="18,20,18,18" HorizontalAlignment="Right">
+          <Grid Width="284" Margin="18,20,18,18" HorizontalAlignment="Right">
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>
               <RowDefinition Height="Auto"/>
@@ -4327,6 +4362,7 @@ foreach ($n in @('TitleBar','BtnMin','BtnClose','VerLabel','LogoMark','LogoRing'
                  'DiagHost','GameHost','GameEmpty','BtnGameAdd','BtnGameDetect','BtnGameAll',
                  'GameInfo','BtnGameFilter','BtnGameClean',
                  'AktPill','AktPillIcon','AktPillText',
+                 'AktBanner','AktBannerTytul','AktBannerOpis','AktBannerPokaz','AktBannerUkryj',
                  'NavStartup','PanelStartup','StartupHost','StartupEmpty','StartupInfo','BtnStartupRefresh',
                  'NavProc','PanelProc','ProcHost','ProcInfo','BtnProcRefresh',
                  'NavLink','PanelLink','LinkHost','LinkPropHost','LinkInfo','BtnLinkScan',
@@ -9440,6 +9476,18 @@ $UI.BtnStartupRefresh.Add_Click({ Start-Worker 'startup_scan' })
 # przycisku nigdy nie dociera do dziecka. Dlatego pigulka reaguje na
 # zdarzenie tunelujace (Preview), ktore idzie od okna w dol i dociera
 # do niej PRZED uchwytem paska, i od razu oznacza je jako obsluzone.
+if ($UI.AktBannerPokaz) {
+    $UI.AktBannerPokaz.Add_Click({
+        if ($script:AktZnaleziona) { Pokaz-Aktualizacje $script:AktZnaleziona }
+        else { Sprawdz-Recznie }
+    })
+}
+if ($UI.AktBannerUkryj) {
+    # Samo schowanie paska - wersja nadal czeka i wroci przy nastepnym
+    # uruchomieniu. Zeby przestala wracac, sluzy "Pomiń tę wersję".
+    $UI.AktBannerUkryj.Add_Click({ Ukryj-PasekAkt })
+}
+
 if ($UI.AktPill) {
     $UI.AktPill.Add_PreviewMouseLeftButtonDown({
         param($s, $e)
@@ -9924,7 +9972,7 @@ $script:ConsoleOpen = $true
 $UI.BtnConsole.Add_Click({
     $script:ConsoleOpen = -not $script:ConsoleOpen
     $to = 0
-    if ($script:ConsoleOpen) { $to = 372 }
+    if ($script:ConsoleOpen) { $to = 320 }
     try { $UI.ConsolePane.BeginAnimation([Windows.FrameworkElement]::WidthProperty, (New-Anim $to $null 280 0 $true)) }
     catch { $UI.ConsolePane.Width = $to }
 })
@@ -9987,12 +10035,37 @@ function Nowy-PrzyciskAkt {
 
 $script:AktZnaleziona = $null
 
+# Pasek nad trescia. Zostaje widoczny az do zainstalowania albo
+# pominiecia wersji - w odroznieniu od okna, ktore pokazuje sie raz.
+function Pokaz-PasekAkt {
+    param($Info)
+    if (-not $UI.AktBanner -or -not $Info) { return }
+
+    $UI.AktBannerTytul.Text = "Dostępna aktualizacja $($Info.Wersja)"
+
+    $opis = "Masz $AppWersja."
+    if ($Info.Zmiany -and @($Info.Zmiany).Count -gt 0) {
+        $ile = @($Info.Zmiany).Count
+        $opis = "$($Info.Zmiany[0])"
+        if ($ile -gt 1) { $opis = $opis + "   (i $($ile - 1) więcej)" }
+    }
+    $UI.AktBannerOpis.Text = $opis
+    $UI.AktBanner.Visibility = 'Visible'
+}
+
+function Ukryj-PasekAkt {
+    if ($UI.AktBanner) { $UI.AktBanner.Visibility = 'Collapsed' }
+}
+
 function Ustaw-PigulkeAkt {
-    param([string]$Stan, [string]$Tekst)
+    param([string]$Stan)
     if (-not $UI.AktPill) { return }
 
+    # Napis jest staly. Pigulka to przycisk, nie komunikat - o dostepnej
+    # wersji mowi pasek nad trescia, ktory ma na to miejsce i nie znika
+    # po kliknieciu gdzie indziej.
     $UI.AktPill.Visibility = 'Visible'
-    $UI.AktPillText.Text = $Tekst
+    $UI.AktPillText.Text = 'Aktualizacje'
 
     switch ($Stan) {
         'nowa' {
@@ -10000,22 +10073,28 @@ function Ustaw-PigulkeAkt {
             $UI.AktPillText.Foreground = Br '#FBBF24'
             $UI.AktPillIcon.Foreground = Br '#FBBF24'
             $UI.AktPillIcon.Text       = [char]0xE896
-            $UI.AktPill.ToolTip        = 'Kliknij, żeby zobaczyć zmiany i zaktualizować'
+            $UI.AktPill.ToolTip        = 'Czeka nowa wersja - kliknij, żeby zobaczyć zmiany'
             try { Pulse $UI.AktPill 0.25 } catch { }
         }
         'szukam' {
-            $UI.AktPill.Background     = Br '#141E2E'
-            $UI.AktPillText.Foreground = Br '#9FB3C8'
-            $UI.AktPillIcon.Foreground = Br '#9FB3C8'
+            $UI.AktPill.Background     = Br '#0E2430'
+            $UI.AktPillText.Foreground = Br '#22D3EE'
+            $UI.AktPillIcon.Foreground = Br '#22D3EE'
             $UI.AktPillIcon.Text       = [char]0xE895
-            $UI.AktPill.ToolTip        = 'Sprawdzam dostępność nowej wersji'
+            $UI.AktPill.ToolTip        = 'Sprawdzam dostępność nowej wersji...'
         }
         'aktualny' {
             $UI.AktPill.Background     = Br '#0F2E24'
             $UI.AktPillText.Foreground = Br '#34D399'
             $UI.AktPillIcon.Foreground = Br '#34D399'
             $UI.AktPillIcon.Text       = [char]0xE73E
-            $UI.AktPill.ToolTip        = 'Masz najnowszą wersję. Kliknij, żeby sprawdzić ponownie'
+            $UI.AktPill.ToolTip        = 'Masz najnowszą wersję'
+            # Potwierdzenie pokazuje sie na chwile i wraca do spoczynku -
+            # zielony na stale niosl by zadnej informacji, bo bylby zawsze.
+            $z = New-Object System.Windows.Threading.DispatcherTimer
+            $z.Interval = [TimeSpan]::FromSeconds(4)
+            $z.Add_Tick({ $z.Stop(); if (-not $script:AktZnaleziona) { Ustaw-PigulkeAkt 'neutral' } }.GetNewClosure())
+            $z.Start()
         }
         'blad' {
             $UI.AktPill.Background     = Br '#33280A'
@@ -10049,7 +10128,8 @@ function Odbierz-WynikAkt {
 
     if ($W -and $W.Akt) {
         $script:AktZnaleziona = $W.Akt
-        Ustaw-PigulkeAkt 'nowa' "Nowa wersja $($W.Akt.Wersja)"
+        Ustaw-PigulkeAkt 'nowa'
+        Pokaz-PasekAkt $W.Akt
         Pokaz-Aktualizacje $W.Akt
         return
     }
@@ -10059,10 +10139,10 @@ function Odbierz-WynikAkt {
     # Ponizej juz tylko sprawdzenie reczne: uzytkownik czeka na odpowiedz,
     # wiec musi ja dostac takze wtedy, gdy nic nowego nie ma.
     if ($W -and $W.Polaczono) {
-        Ustaw-PigulkeAkt 'aktualny' 'Aktualny'
+        Ustaw-PigulkeAkt 'aktualny'
         Add-Log "Sprawdzono aktualizacje - masz najnowszą wersję ($AppWersja)." 'ok'
     } else {
-        Ustaw-PigulkeAkt 'blad' 'Brak połączenia'
+        Ustaw-PigulkeAkt 'blad'
         Add-Log 'Nie udało się sprawdzić aktualizacji - brak połączenia z serwerem.' 'warn'
     }
 }
@@ -10070,11 +10150,11 @@ function Odbierz-WynikAkt {
 function Sprawdz-Recznie {
     if ($script:AktZnaleziona) { Pokaz-Aktualizacje $script:AktZnaleziona; return }
     if (-not (Akt-Skonfigurowane)) {
-        Ustaw-PigulkeAkt 'blad' 'Nie skonfigurowano'
+        Ustaw-PigulkeAkt 'blad'
         Add-Log 'Adres aktualizacji nie jest ustawiony w tej kopii programu.' 'warn'
         return
     }
-    Ustaw-PigulkeAkt 'szukam' 'Sprawdzam...'
+    Ustaw-PigulkeAkt 'szukam'
     Sprawdz-AktualizacjeWTle $Window { param($w) Odbierz-WynikAkt $w -Reczne } -Wymuszone
 }
 
@@ -10644,7 +10724,11 @@ function Pokaz-Aktualizacje {
     $bPomin.Add_Click({
         $u = Load-UstAkt
         $u.pomin = $Info.Wersja
+        $u.czeka = ''
         Save-UstAkt $u
+        $script:AktZnaleziona = $null
+        Ukryj-PasekAkt
+        Ustaw-PigulkeAkt 'neutral'
         Add-Log "Wersja $($Info.Wersja) pominięta - przypomnę przy następnej." 'info'
         $okno.Close()
     }.GetNewClosure())
@@ -10688,7 +10772,7 @@ $Window.Add_ContentRendered({
 
     # Pigulka jest widoczna od startu, nawet gdy sprawdzenie nie idzie
     # (limit raz na dobe) - kliknieciem wymusza je natychmiast.
-    if (Akt-Skonfigurowane) { Ustaw-PigulkeAkt 'neutral' 'Aktualizacje' }
+    if (Akt-Skonfigurowane) { Ustaw-PigulkeAkt 'neutral' }
 
     Sprawdz-AktualizacjeWTle $Window { param($w) Odbierz-WynikAkt $w }
 })
