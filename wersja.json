@@ -2,20 +2,19 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.1.0",
+    "wersja": "8.1.1",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "2C620FD6178F2F6956B836AED08156E1A740F86F2FBA7790D246E38BB9E06B44",
-      "rozmiar": 519179
+      "sha256": "77CBE458933757203A84C7DCEAFF0C70486CCA28180120D175AC7FF77C1D7D95",
+      "rozmiar": 520140
     },
     "zmiany": [
-      "Nowa karta \"Czas uruchamiania\" na Pulpicie - ile trwal ostatni rozruch, wg pomiaru Windows",
-      "Lista programow, ktore najbardziej opozniaja start, z paskami i sekundami",
-      "W Autostarcie przy wpisach widac zmierzone opoznienie, np. \"3,2 s do startu systemu\"",
-      "Osobny pasek nad trescia informuje o dostepnej aktualizacji",
-      "Lewe menu miesci sie bez przewijania, konsola wezsza o 52 px"
+      "Naprawione pobieranie aktualizacji - potrafilo stanac z paskiem krecacym sie w nieskonczonosc",
+      "Procenty licza sie teraz z rozmiaru z manifestu, a nie z odpowiedzi serwera",
+      "Po minucie bez ani jednego nowego bajtu program przerywa i mowi o tym wprost",
+      "Nowa karta \"Czas uruchamiania\" na Pulpicie i zmierzone opoznienia w Autostarcie"
     ]
   },
   "lacze": {
