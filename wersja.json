@@ -2,17 +2,19 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.3.1",
+    "wersja": "8.3.3",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "345007DC8531284635868BE6E26714328EDFF5AE605793D2C292D14B2FFCF0E8",
-      "rozmiar": 525810
+      "sha256": "602B81D5E5D0C9F8B1E32616CA9685201DF0E69DC785BE3592BF7D7958758923",
+      "rozmiar": 526469
     },
     "zmiany": [
-      "Wydanie kontrolne - sprawdzamy, na ktorym etapie zatrzymuje sie pobieranie",
-      "Baza opisow rozszerzona do 104 pozycji"
+      "Naprawione pobieranie aktualizacji - zawieszalo sie na nawiazywaniu polaczenia",
+      "Twardy limit czasu: pasek nie ma juz jak krecic sie w nieskonczonosc",
+      "Dziesiaty motyw kolorystyczny: Szmaragd",
+      "Historia czasow rozruchu i pelna lista programow opozniajacych start"
     ]
   },
   "lacze": {
@@ -27,9 +29,9 @@
     "zmiany": []
   },
   "baza": {
-    "wersja": 4,
+    "wersja": 5,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "F59D8D539D55E41B315DC38DC31DFF43BFB16EEC11A757DF818972417361D4E0",
+    "sha256": "5AAE522ADF660A446ED5C937A55C47A515D9262D18E08CD1B6E1441707B22BA3",
     "rozmiar": 27177
   }
 }

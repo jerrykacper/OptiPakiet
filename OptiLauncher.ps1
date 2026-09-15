@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.3.1'
+$AppWersja  = '8.3.3'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1418,82 +1418,94 @@ function Zapamietaj-Aktualizacje {
 
 # Pobieranie z paskiem postepu.
 #
-# Trzy podejscia, ktore nie zadzialaly, i dlaczego:
+# Historia nieudanych podejsc, zeby nikt tego nie "poprawil" z powrotem:
 #
 # 1. Zdarzenia WebClient - odpalaja sie na watku puli bez runspace'u
 #    PowerShella, co konczy sie ubiciem calego procesu.
-# 2. i 3. Pobieranie w osobnym runspace, a postep odczytywany
-#    DispatcherTimerem - okno aktualizacji jest MODALNE i kreci wlasna,
-#    zagniezdzona petle komunikatow. Zegar zalozony pod spodem nie tykal,
-#    wiec pasek nie mial kto ruszyc, a koniec pobierania nie mial kto
-#    zauwazyc. Stad "kreci sie w kolko i nic sie nie dzieje".
+# 2. Runspace + DispatcherTimer - okno aktualizacji jest modalne i kreci
+#    wlasna petle komunikatow; zegar zalozony pod spodem nie tykal.
+# 3. Wlasna petla na HttpWebRequest, na watku okna - zawieszala sie na
+#    GetResponse, jeszcze przed pierwszym bajtem, mimo ustawionego
+#    Timeout. Konsola pokazala to wprost: wpis "pobieram", potem cisza.
 #
-# Dlatego teraz sterujemy tym sami: czytamy odpowiedz kawalkami na watku
-# okna i po kazdym kawalku wymuszamy przerysowanie. Okno pozostaje zywe,
-# bo miedzy kawalkami oddajemy sterowanie petli komunikatow, a postep
-# jest dokladny, bo liczymy go z tego, co faktycznie wczytalismy.
+# Co dziala: Invoke-WebRequest. Tym samym wywolaniem od poczatku schodzi
+# manifest i nie zawiodlo ani razu. Wiec pobieramy nim, w runspace w tle,
+# a postep czytamy z rosnacego pliku w petli, ktora SAMA pompuje kolejke
+# komunikatow okna - dzieki temu nie zalezy od zegara ani od tego, czy
+# petla modalna go obsluzy.
 function Pobierz-ZPostepem {
     param([string]$Url, [string]$Cel, [int64]$Rozmiar, $Okno, [scriptblock]$Postep, [scriptblock]$Koniec)
 
     try { Remove-Item -LiteralPath $Cel -Force -ErrorAction SilentlyContinue } catch { }
+
+    $wspolne = [hashtable]::Synchronized(@{ Gotowe = $false; Blad = '' })
+
     try {
-        [Net.ServicePointManager]::SecurityProtocol =
-            [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
-    } catch { }
+        $rs = [runspacefactory]::CreateRunspace()
+        $rs.ApartmentState = 'STA'
+        $rs.ThreadOptions  = 'ReuseThread'
+        $rs.Open()
+        $rs.SessionStateProxy.SetVariable('S',   $wspolne)
+        $rs.SessionStateProxy.SetVariable('Url', $Url)
+        $rs.SessionStateProxy.SetVariable('Cel', $Cel)
 
-    $odswiez = {
-        try { $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render) } catch { }
-    }.GetNewClosure()
-
-    $we = $null; $wy = $null; $odp = $null
-    try {
-        $req = [System.Net.HttpWebRequest]::Create($Url)
-        $req.UserAgent         = 'OptiLauncher'
-        $req.Timeout           = 20000
-        $req.ReadWriteTimeout  = 20000
-        $req.AllowAutoRedirect = $true
-
-        $odp  = $req.GetResponse()
-        $caly = [int64]$odp.ContentLength
-        if ($caly -le 0) { $caly = $Rozmiar }   # manifest zna rozmiar, gdy serwer go nie poda
-
-        $we  = $odp.GetResponseStream()
-        $wy  = [System.IO.File]::Create($Cel)
-        $buf = New-Object byte[] 32768
-        $ile = [int64]0
-        $ostatnieOdswiezenie = [Environment]::TickCount
-
-        while (($n = $we.Read($buf, 0, $buf.Length)) -gt 0) {
-            $wy.Write($buf, 0, $n)
-            $ile = $ile + $n
-
-            # Przerysowanie nie czesciej niz co 100 ms - inaczej samo
-            # odswiezanie kosztuje wiecej niz pobieranie.
-            if (([Environment]::TickCount - $ostatnieOdswiezenie) -ge 100) {
-                $ostatnieOdswiezenie = [Environment]::TickCount
-                $proc = 0
-                if ($caly -gt 0) { $proc = [int][Math]::Min(99, (100 * $ile / $caly)) }
-                try { & $Postep $proc $ile $caly } catch { }
-                & $odswiez
+        $ps = [powershell]::Create()
+        $ps.Runspace = $rs
+        $null = $ps.AddScript({
+            try {
+                [Net.ServicePointManager]::SecurityProtocol =
+                    [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
+            } catch { }
+            try {
+                Invoke-WebRequest -Uri $Url -OutFile $Cel -UseBasicParsing -TimeoutSec 90 -ErrorAction Stop
+            } catch {
+                $S.Blad = "$($_.Exception.Message)"
             }
-        }
-
-        $wy.Close(); $wy = $null
-        $we.Close(); $we = $null
-        $odp.Close(); $odp = $null
-
-        try { & $Postep 100 $ile $caly } catch { }
-        & $odswiez
+            $S.Gotowe = $true
+        })
+        $uchwyt = $ps.BeginInvoke()
     } catch {
-        if ($wy)  { try { $wy.Close() }  catch { } }
-        if ($we)  { try { $we.Close() }  catch { } }
-        if ($odp) { try { $odp.Close() } catch { } }
-        try { Remove-Item -LiteralPath $Cel -Force -ErrorAction SilentlyContinue } catch { }
-        try { & $Koniec "$($_.Exception.Message)" } catch { }
+        try { & $Koniec "Nie udalo sie rozpoczac pobierania: $($_.Exception.Message)" } catch { }
         return @{ Ok = $true }
     }
 
-    try { & $Koniec '' } catch { }
+    # Petla sterowana stad, nie zegarem. Po kazdym obrocie oddajemy
+    # sterowanie petli komunikatow, wiec okno zyje i pasek sie rusza.
+    $obrotow = 0
+    while (-not $wspolne.Gotowe) {
+        $ile = [int64]0
+        try { if (Test-Path -LiteralPath $Cel) { $ile = [int64](Get-Item -LiteralPath $Cel -ErrorAction SilentlyContinue).Length } } catch { }
+
+        $proc = 0
+        if ($Rozmiar -gt 0) { $proc = [int][Math]::Min(99, (100 * $ile / $Rozmiar)) }
+        try { & $Postep $proc $ile $Rozmiar } catch { }
+
+        try { $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Background) } catch { }
+        Start-Sleep -Milliseconds 120
+
+        # Twardy limit: dwie minuty. Zadne pobieranie tego pliku nie ma
+        # prawa trwac dluzej, a pasek krecacy sie w nieskonczonosc juz
+        # raz kosztowal nas pol dnia.
+        $obrotow++
+        if ($obrotow -gt 1000) {
+            try { $ps.Stop() } catch { }
+            try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
+            try { & $Koniec 'Pobieranie przekroczyło limit czasu.' } catch { }
+            return @{ Ok = $true }
+        }
+    }
+
+    try { $null = $ps.EndInvoke($uchwyt) } catch { }
+    try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
+
+    if (-not $wspolne.Blad) {
+        $ile = [int64]0
+        try { $ile = [int64](Get-Item -LiteralPath $Cel).Length } catch { }
+        try { & $Postep 100 $ile $Rozmiar } catch { }
+        try { $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render) } catch { }
+    }
+
+    try { & $Koniec "$($wspolne.Blad)" } catch { }
     return @{ Ok = $true }
 }
 
@@ -2186,7 +2198,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.3.1'
+$AppVersion = '8.3.3'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
