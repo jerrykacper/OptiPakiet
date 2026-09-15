@@ -2,24 +2,17 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "7.9.6",
+    "wersja": "7.9.7",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "D7F7770DCAF0D6D22D6265548AD46854B139A12CD2016CCDC986AF9195CDE733",
-      "rozmiar": 500998
+      "sha256": "D8F7E316DA67850A4A6C8FDF512E613C0616847679B1362A7C67BB8DB1033F14",
+      "rozmiar": 502632
     },
     "zmiany": [
-      "Aktualizacja dziala takze wtedy, gdy wydanie nie zawiera instalatora - podmieniany jest sam plik",
-      "\"Pozniej\" znaczy naprawde \"przy nastepnym uruchomieniu\", a nie \"za 20 godzin\"",
-      "Pasek postepu 0-100% przy pobieraniu, z licznikiem megabajtow",
-      "Okno nie zamraza sie w trakcie aktualizacji",
-      "Wskaznik aktualizacji w pasku tytulu, obok odznaki Administrator",
-      "Nowe narzedzie \"Blokady aktualizacji\" - programy, ktorych winget ma nie ruszac",
-      "Zadanie winget nie zawiesza sie na pakietach pytajacych o katalog instalacji",
-      "Ekran \"Co nowego\" po aktualizacji",
-      "Poprawiony odczyt pamieci karty graficznej"
+      "13 zadan czyszczacych mowi teraz wprost, ze nie zostana potwierdzone ani zapisane do cofniecia",
+      "Baza opisow rozszerzona do 101 pozycji"
     ]
   },
   "lacze": {
@@ -34,9 +27,9 @@
     "zmiany": []
   },
   "baza": {
-    "wersja": 2,
+    "wersja": 3,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "2B3776A2E586992FF821E3D100533F24C5125F4C422C7C5E1A7E6D562B8C9B4E",
-    "rozmiar": 24347
+    "sha256": "D2F0F5BCA6C78C49AF41349C0F1B704EE58704E3A9D3229A92F54D4CA35577FD",
+    "rozmiar": 26504
   }
 }

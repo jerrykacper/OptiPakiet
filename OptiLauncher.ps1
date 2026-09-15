@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.6'
+$AppWersja  = '7.9.7'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2168,7 +2168,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.6'
+$AppVersion = '7.9.7'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -7464,6 +7464,43 @@ function New-TaskCard {
             $zr.Inlines.Add($txt)
 
             $sp.Children.Add($zr) | Out-Null
+        }
+    }
+
+    # --- czego program przy tym zadaniu NIE zrobi ---
+    # README obiecuje, ze po kazdej zmianie program sprawdza, czy naprawde
+    # weszla, i ze kazda zmiane da sie cofnac. Przy czesci zadan - glownie
+    # czyszczacych i naprawczych - nie ma czego sprawdzac ani do czego
+    # wracac, bo nie zmieniaja ustawien, tylko wykonuja operacje. Zamiast
+    # zostawiac to w domysle, karta mowi o tym wprost.
+    if (-not $Task.Tool) {
+        $bezTestu = -not $Task.Test
+        $bezCofki = -not $Task.Rev
+        $tresc = ''
+        if     ($bezTestu -and $bezCofki) { $tresc = 'program nie potwierdzi, czy zmiana weszła, i nie zapisze jej do przywrócenia' }
+        elseif ($bezTestu)                { $tresc = 'program nie potwierdzi, czy zmiana faktycznie weszła' }
+        elseif ($bezCofki)                { $tresc = 'tej zmiany nie przywróci przycisk "Przywróć wszystko"' }
+
+        if ($tresc) {
+            $uw = New-Object Windows.Controls.TextBlock
+            $uw.TextWrapping = 'Wrap'
+            $uw.FontSize = 11
+            $uw.Margin = '0,7,16,0'
+            $uw.LineHeight = 17
+
+            $uwL = New-Object Windows.Documents.Run
+            $uwL.Text = 'Bez potwierdzenia  '
+            if ($bezCofki -and -not $bezTestu) { $uwL.Text = 'Bez cofania  ' }
+            $uwL.Foreground = Br '#8B98A9'
+            $uwL.FontWeight = 'SemiBold'
+            $uw.Inlines.Add($uwL)
+
+            $uwT = New-Object Windows.Documents.Run
+            $uwT.Text = $tresc
+            $uwT.Foreground = $Window.FindResource('Dim')
+            $uw.Inlines.Add($uwT)
+
+            $sp.Children.Add($uw) | Out-Null
         }
     }
 

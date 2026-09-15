@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "wersja": 2,
+  "wersja": 3,
   "wydano": "2026-09-15",
   "wpisy": {
     "explorer": {
@@ -560,6 +560,54 @@
       "zrodlo": "AnyDesk",
       "ocena": "zalezy",
       "opis": "Zdalny pulpit. To samo zastrzeżenie: w autostarcie ma sens tylko przy połączeniach przychodzących pod Twoją nieobecność."
+    },
+    "java": {
+      "nazwa": "Java Platform",
+      "zrodlo": "Oracle",
+      "ocena": "zalezy",
+      "opis": "Środowisko uruchomieniowe Javy. Potrzebne programom, które na nim działają — np. Minecraftowi. Samo z siebie nic nie robi w tle."
+    },
+    "greenshot": {
+      "nazwa": "Greenshot",
+      "zrodlo": "Greenshot",
+      "ocena": "zalezy",
+      "opis": "Narzędzie do zrzutów ekranu. Musi działać w tle, żeby przechwytywać klawisz Print Screen — bez autostartu trzeba je uruchamiać ręcznie."
+    },
+    "7zfm": {
+      "nazwa": "7-Zip",
+      "zrodlo": "Igor Pavlov",
+      "ocena": "bezpieczne",
+      "opis": "Menedżer archiwów. Nie ma powodu, żeby startował z systemem — obsługa menu kontekstowego działa bez tego."
+    },
+    "notepad++": {
+      "nazwa": "Notepad++",
+      "zrodlo": "Notepad++",
+      "ocena": "bezpieczne",
+      "opis": "Edytor tekstu. W autostarcie zbędny."
+    },
+    "steamservice": {
+      "nazwa": "Steam Client Service",
+      "zrodlo": "Valve",
+      "ocena": "zostaw",
+      "opis": "Usługa pomocnicza Steama, obsługuje instalacje i uprawnienia. Startuje tylko wtedy, gdy Steam jej potrzebuje, i sama się zamyka."
+    },
+    "nvidia share": {
+      "nazwa": "NVIDIA Overlay",
+      "zrodlo": "NVIDIA",
+      "ocena": "zalezy",
+      "opis": "Nakładka NVIDIA w grach: nagrywanie, licznik FPS, filtry. Kosztuje trochę wydajności w grach — jeśli nie nagrywasz, można ją wyłączyć w aplikacji NVIDIA."
+    },
+    "epicwebhelper": {
+      "nazwa": "Epic Games — proces pomocniczy",
+      "zrodlo": "Epic Games",
+      "ocena": "zostaw",
+      "opis": "Rysuje interfejs launchera Epic. Zamknięcie ubija cały launcher. Znika razem z nim."
+    },
+    "adobeipcbroker": {
+      "nazwa": "Adobe IPC Broker",
+      "zrodlo": "Adobe",
+      "ocena": "bezpieczne",
+      "opis": "Pośrednik komunikacji między składnikami Creative Cloud. Programy Adobe uruchomią się bez niego."
     }
   },
   "aliasy": {
@@ -622,6 +670,12 @@
     "visual studio code": "code",
     "vlc media player": "vlc",
     "teamviewer": "teamviewer",
-    "anydesk": "anydesk"
+    "anydesk": "anydesk",
+    "java update scheduler": "jusched",
+    "greenshot": "greenshot",
+    "7-zip": "7zfm",
+    "notepad++": "notepad++",
+    "nvidia share": "nvidia share",
+    "nvidia overlay": "nvidia share"
   }
 }
