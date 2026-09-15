@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.2.0'
+$AppWersja  = '8.2.1'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1416,97 +1416,84 @@ function Zapamietaj-Aktualizacje {
     } catch { }
 }
 
-# Pobieranie bez blokowania okna.
+# Pobieranie z paskiem postepu.
 #
-# Dwie rzeczy, ktore juz raz kosztowaly dzien szukania:
+# Trzy podejscia, ktore nie zadzialaly, i dlaczego:
 #
-# 1. Zdarzenia WebClient (DownloadProgressChanged) odpalaja sie na watku
-#    puli bez runspace'u PowerShella - kazda proba wykonania tam kodu
-#    konczy sie ubiciem calego procesu. Dlatego zadnych zdarzen.
-# 2. Wlasna petla na HttpWebRequest potrafila stanac bez slowa. Tutaj
-#    uzywamy dokladnie tej samej metody, ktora w tym programie pobiera
-#    manifest i dziala - WebClient.DownloadFile, tyle ze w runspace w tle.
+# 1. Zdarzenia WebClient - odpalaja sie na watku puli bez runspace'u
+#    PowerShella, co konczy sie ubiciem calego procesu.
+# 2. i 3. Pobieranie w osobnym runspace, a postep odczytywany
+#    DispatcherTimerem - okno aktualizacji jest MODALNE i kreci wlasna,
+#    zagniezdzona petle komunikatow. Zegar zalozony pod spodem nie tykal,
+#    wiec pasek nie mial kto ruszyc, a koniec pobierania nie mial kto
+#    zauwazyc. Stad "kreci sie w kolko i nic sie nie dzieje".
 #
-# Postep liczymy z rozmiaru pliku na dysku wzgledem rozmiaru z manifestu,
-# wiec procenty nie zaleza od tego, czy serwer poda dlugosc odpowiedzi.
-# Do tego czuwa straznik: gdy plik nie rosnie przez dluzsza chwile,
-# przerywamy i mowimy o tym wprost, zamiast krecic paskiem w nieskonczonosc.
+# Dlatego teraz sterujemy tym sami: czytamy odpowiedz kawalkami na watku
+# okna i po kazdym kawalku wymuszamy przerysowanie. Okno pozostaje zywe,
+# bo miedzy kawalkami oddajemy sterowanie petli komunikatow, a postep
+# jest dokladny, bo liczymy go z tego, co faktycznie wczytalismy.
 function Pobierz-ZPostepem {
     param([string]$Url, [string]$Cel, [int64]$Rozmiar, $Okno, [scriptblock]$Postep, [scriptblock]$Koniec)
 
     try { Remove-Item -LiteralPath $Cel -Force -ErrorAction SilentlyContinue } catch { }
-
-    $wspolne = [hashtable]::Synchronized(@{ Gotowe = $false; Blad = '' })
-
     try {
-        $rs = [runspacefactory]::CreateRunspace()
-        $rs.ApartmentState = 'STA'
-        $rs.ThreadOptions  = 'ReuseThread'
-        $rs.Open()
-        $rs.SessionStateProxy.SetVariable('S',   $wspolne)
-        $rs.SessionStateProxy.SetVariable('Url', $Url)
-        $rs.SessionStateProxy.SetVariable('Cel', $Cel)
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
+    } catch { }
 
-        $ps = [powershell]::Create()
-        $ps.Runspace = $rs
-        $null = $ps.AddScript({
-            try {
-                [Net.ServicePointManager]::SecurityProtocol =
-                    [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
-            } catch { }
-            try {
-                $wc = New-Object System.Net.WebClient
-                $wc.Headers.Add('User-Agent', 'OptiLauncher')
-                $wc.DownloadFile($Url, $Cel)
-            } catch {
-                $S.Blad = "$($_.Exception.Message)"
+    $odswiez = {
+        try { $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render) } catch { }
+    }.GetNewClosure()
+
+    $we = $null; $wy = $null; $odp = $null
+    try {
+        $req = [System.Net.HttpWebRequest]::Create($Url)
+        $req.UserAgent         = 'OptiLauncher'
+        $req.Timeout           = 20000
+        $req.ReadWriteTimeout  = 20000
+        $req.AllowAutoRedirect = $true
+
+        $odp  = $req.GetResponse()
+        $caly = [int64]$odp.ContentLength
+        if ($caly -le 0) { $caly = $Rozmiar }   # manifest zna rozmiar, gdy serwer go nie poda
+
+        $we  = $odp.GetResponseStream()
+        $wy  = [System.IO.File]::Create($Cel)
+        $buf = New-Object byte[] 32768
+        $ile = [int64]0
+        $ostatnieOdswiezenie = [Environment]::TickCount
+
+        while (($n = $we.Read($buf, 0, $buf.Length)) -gt 0) {
+            $wy.Write($buf, 0, $n)
+            $ile = $ile + $n
+
+            # Przerysowanie nie czesciej niz co 100 ms - inaczej samo
+            # odswiezanie kosztuje wiecej niz pobieranie.
+            if (([Environment]::TickCount - $ostatnieOdswiezenie) -ge 100) {
+                $ostatnieOdswiezenie = [Environment]::TickCount
+                $proc = 0
+                if ($caly -gt 0) { $proc = [int][Math]::Min(99, (100 * $ile / $caly)) }
+                try { & $Postep $proc $ile $caly } catch { }
+                & $odswiez
             }
-            $S.Gotowe = $true
-        })
-        $uchwyt = $ps.BeginInvoke()
+        }
+
+        $wy.Close(); $wy = $null
+        $we.Close(); $we = $null
+        $odp.Close(); $odp = $null
+
+        try { & $Postep 100 $ile $caly } catch { }
+        & $odswiez
     } catch {
-        return @{ Ok = $false; Blad = "Nie udalo sie rozpoczac pobierania: $($_.Exception.Message)" }
+        if ($wy)  { try { $wy.Close() }  catch { } }
+        if ($we)  { try { $we.Close() }  catch { } }
+        if ($odp) { try { $odp.Close() } catch { } }
+        try { Remove-Item -LiteralPath $Cel -Force -ErrorAction SilentlyContinue } catch { }
+        try { & $Koniec "$($_.Exception.Message)" } catch { }
+        return @{ Ok = $true }
     }
 
-    $script:PobrOstatni = [int64]0
-    $script:PobrBezRuchu = 0
-
-    $zegar = New-Object System.Windows.Threading.DispatcherTimer
-    $zegar.Interval = [TimeSpan]::FromMilliseconds(200)
-    $zegar.Add_Tick({
-        $ile = [int64]0
-        try { if (Test-Path -LiteralPath $Cel) { $ile = [int64](Get-Item -LiteralPath $Cel).Length } } catch { }
-
-        if (-not $wspolne.Gotowe) {
-            $proc = 0
-            if ($Rozmiar -gt 0) { $proc = [int][Math]::Min(99, (100 * $ile / $Rozmiar)) }
-            try { & $Postep $proc $ile $Rozmiar } catch { }
-
-            # Straznik: 60 sekund bez ani jednego nowego bajtu = koniec
-            # czekania. Lepiej powiedziec "nie udalo sie" niz udawac prace.
-            if ($ile -gt $script:PobrOstatni) { $script:PobrOstatni = $ile; $script:PobrBezRuchu = 0 }
-            else { $script:PobrBezRuchu++ }
-
-            if ($script:PobrBezRuchu -ge 300) {
-                $zegar.Stop()
-                try { $ps.Stop() } catch { }
-                try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
-                try { & $Koniec 'Pobieranie utknęło - serwer nie odpowiada.' } catch { }
-            }
-            return
-        }
-
-        $zegar.Stop()
-        try { $null = $ps.EndInvoke($uchwyt) } catch { }
-        try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
-
-        if (-not $wspolne.Blad -and $Rozmiar -gt 0) {
-            try { & $Postep 100 $ile $Rozmiar } catch { }
-        }
-        try { & $Koniec "$($wspolne.Blad)" } catch { }
-    }.GetNewClosure())
-    $zegar.Start()
-
+    try { & $Koniec '' } catch { }
     return @{ Ok = $true }
 }
 
@@ -2199,7 +2186,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.2'
+$AppVersion = '8.2.1'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))

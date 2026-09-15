@@ -2,15 +2,16 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.2.0",
+    "wersja": "8.2.1",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "994D89C3B19B75D28B1F25849F254FF6F66094D2AF4FDDD93C796187CC98F5C9",
-      "rozmiar": 524115
+      "sha256": "35D6D915663892E44250312029B656DFE0D3B89A7F5FA0F8B8316BA973856EB8",
+      "rozmiar": 523594
     },
     "zmiany": [
+      "Pasek postepu aktualizacji wreszcie pokazuje procenty zamiast krecic sie w kolko",
       "Historia czasow rozruchu - slupek na kazdy start, widac czy komputer wstaje szybciej",
       "Porownanie srednich: \"szybciej o 4,2 s\" albo \"bez wyraznej zmiany\"",
       "Naprawiona pusta lista winowajcow na karcie \"Czas uruchamiania\""
