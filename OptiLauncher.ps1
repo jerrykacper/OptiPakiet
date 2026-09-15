@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.7'
+$AppWersja  = '7.9.9'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1150,38 +1150,53 @@ function Sprawdz-AktualizacjeWTle {
         if ($f) { $kod += "function $n {`n" + $f.Definition + "`n}`n" }
     }
 
+    # Wynik NIE wraca przez wywolanie zwrotne z runspace'u w tle.
+    # Scriptblock przekazany tam i wywolany przez Dispatcher wykonuje sie
+    # w obcym runspace, a kazde dotkniecie kontrolki konczy sie wtedy
+    # bledem "watek wywolujacy nie moze uzyskac dostepu do tego obiektu".
+    # Zamiast tego tlo zapisuje wynik do wspolnej tablicy, a okno odbiera
+    # go zegarem - czyli juz na swoim wlasnym watku i w swoim runspace.
+    $wspolne = [hashtable]::Synchronized(@{ Gotowe = $false; Wynik = $null })
+
     try {
         $rs = [runspacefactory]::CreateRunspace()
         $rs.ApartmentState = 'STA'
         $rs.ThreadOptions  = 'ReuseThread'
         $rs.Open()
-        $rs.SessionStateProxy.SetVariable('Kod',         $kod)
-        $rs.SessionStateProxy.SetVariable('UrlManifest', $UrlManifest)
-        $rs.SessionStateProxy.SetVariable('AktFile',     $AktFile)
-        $rs.SessionStateProxy.SetVariable('AppWersja',   $AppWersja)
-        $rs.SessionStateProxy.SetVariable('AktOdstepH',  $AktOdstepH)
+        $rs.SessionStateProxy.SetVariable('Kod',           $kod)
+        $rs.SessionStateProxy.SetVariable('UrlManifest',   $UrlManifest)
+        $rs.SessionStateProxy.SetVariable('AktFile',       $AktFile)
+        $rs.SessionStateProxy.SetVariable('AppWersja',     $AppWersja)
+        $rs.SessionStateProxy.SetVariable('AktOdstepH',    $AktOdstepH)
         $rs.SessionStateProxy.SetVariable('BazaFile',      $BazaFile)
         $rs.SessionStateProxy.SetVariable('BazaWbudowana', $BazaWbudowana)
-        $rs.SessionStateProxy.SetVariable('Okno',        $Okno)
-        $rs.SessionStateProxy.SetVariable('Callback',    $PoZnalezieniu)
-        $rs.SessionStateProxy.SetVariable('Wymus',       [bool]$Wymuszone)
+        $rs.SessionStateProxy.SetVariable('Wymus',         [bool]$Wymuszone)
+        $rs.SessionStateProxy.SetVariable('S',             $wspolne)
 
         $ps = [powershell]::Create()
         $ps.Runspace = $rs
         $null = $ps.AddScript({
             try {
                 . ([scriptblock]::Create($Kod))
-                $wynik = Sprawdz-Wszystko -Wymuszone:$Wymus
-                if ($wynik -and $Okno) {
-                    # BeginInvoke, nie Invoke: callback otwiera okno modalne,
-                    # a Invoke trzymalby watek w tle az do jego zamkniecia -
-                    # razem z zagniezdzona petla komunikatow w srodku.
-                    $null = $Okno.Dispatcher.BeginInvoke([action]{ & $Callback $wynik })
-                }
+                $S.Wynik = Sprawdz-Wszystko -Wymuszone:$Wymus
             } catch { }
+            $S.Gotowe = $true
         })
-        $null = $ps.BeginInvoke()
-    } catch { }
+        $uchwyt = $ps.BeginInvoke()
+    } catch { return }
+
+    $zegar = New-Object System.Windows.Threading.DispatcherTimer
+    $zegar.Interval = [TimeSpan]::FromMilliseconds(250)
+    $zegar.Add_Tick({
+        if (-not $wspolne.Gotowe) { return }
+        $zegar.Stop()
+        try { $null = $ps.EndInvoke($uchwyt) } catch { }
+        try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
+        if ($wspolne.Wynik) {
+            try { & $PoZnalezieniu $wspolne.Wynik } catch { }
+        }
+    }.GetNewClosure())
+    $zegar.Start()
 }
 
 
@@ -2168,7 +2183,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.7'
+$AppVersion = '7.9.9'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -9420,7 +9435,18 @@ function Render-Startup {
 
 $UI.BtnStartupRefresh.Add_Click({ Start-Worker 'startup_scan' })
 
-if ($UI.AktPill) { $UI.AktPill.Add_MouseLeftButtonUp({ Sprawdz-Recznie }) }
+# Pasek tytulu lapie MouseLeftButtonDown i wola DragMove(), ktore
+# przechwytuje mysz i wchodzi w petle przeciagania okna - zwolnienie
+# przycisku nigdy nie dociera do dziecka. Dlatego pigulka reaguje na
+# zdarzenie tunelujace (Preview), ktore idzie od okna w dol i dociera
+# do niej PRZED uchwytem paska, i od razu oznacza je jako obsluzone.
+if ($UI.AktPill) {
+    $UI.AktPill.Add_PreviewMouseLeftButtonDown({
+        param($s, $e)
+        $e.Handled = $true
+        Sprawdz-Recznie
+    })
+}
 
 # =====================================================================
 #  PROCESY W TLE - widok
