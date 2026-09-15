@@ -1,11 +1,12 @@
-# OptiPakiet
+# OptiLauncher
 
-Dwa narzędzia dla Windowsa, napisane w PowerShellu z interfejsem WPF.
+Narzędzie dla Windowsa do optymalizacji i diagnostyki komputera,
+napisane w PowerShellu z interfejsem WPF.
 Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle.
 
 ---
 
-## OptiLauncher 8.6
+## OptiLauncher 9.0
 
 Optymalizacja i diagnostyka komputera.
 
@@ -24,6 +25,13 @@ z pytaniem, co właściwie kliknął. OptiLauncher robi trzy rzeczy inaczej:
 
 Każda zmiana trafia do `backup.json` i da się ją cofnąć jednym przyciskiem.
 
+**Paleta poleceń**
+
+`Ctrl+K` otwiera wyszukiwarkę wszystkiego: zadań, narzędzi, zakładek
+i akcji programu. Wpisujesz „dns", „telemetria", „punkt" — strzałki
+wybierają, Enter uruchamia. Nie wymaga polskich znaków diakrytycznych,
+bo nikt ich nie wstukuje w polu wyszukiwania.
+
 **Co jest w środku**
 
 | Zakładka | Do czego |
@@ -41,38 +49,22 @@ system, usługi, czyszczenie, sieć, aplikacje — każde z cofaniem zmian.
 
 ---
 
-## Sprawdzanie Łącza 1.4
-
-Diagnostyka sieci. Niczego nie zmienia — wyłącznie odczyt.
-
-Mierzy opóźnienie, jitter i straty pakietów **osobno do routera i osobno
-do internetu**. To rozstrzyga, gdzie naprawdę jest problem: jeśli ping do
-routera skacze, winne jest Wi-Fi albo kabel i żadne ustawienie Windows
-tego nie naprawi.
-
-Pokazuje kartę sieciową, prędkość linku, MTU, serwery DNS, przy Wi-Fi siłę
-sygnału i pasmo, publiczny adres IP, test pobierania i wysyłania oraz
-traceroute z czasem na każdym skoku. Na końcu wypisuje wniosek zwykłym
-językiem — łącznie z „nie ma tu czego optymalizować", jeśli tak jest.
-
----
-
 ## Instalacja
 
 Pobierz paczkę, rozpakuj i uruchom `START.bat`.
 
 Menu prowadzi przez resztę. Przy pierwszym uruchomieniu warto zacząć od
-pozycji **[6] Diagnoza** — sprawdza składnię i startuje program z widoczną
+pozycji **[4] Diagnoza** — sprawdza składnię i startuje program z widoczną
 konsolą, więc ewentualny błąd widać zamiast pustego ekranu.
 
-Instalacja (**[4]** i **[5]**) kopiuje programy do
-`%LOCALAPPDATA%\Programs`, tworzy skróty i rejestruje je w Ustawieniach
+Instalacja (pozycja **[2]**) kopiuje program do
+`%LOCALAPPDATA%\Programs`, tworzy skróty i rejestruje program w Ustawieniach
 Windows — odinstalujesz jak każdy inny program. Ustawienia systemu
 zostają nietknięte.
 
 **Wymagania:** Windows 10 lub 11, PowerShell 5.1 (jest w systemie).
 OptiLauncher prosi o uprawnienia administratora — bez nich nie da się
-zmieniać ustawień systemu. Sprawdzanie Łącza ich nie potrzebuje.
+zmieniać ustawień systemu.
 
 Jeśli Windows oznaczy pliki jako pobrane z internetu i coś się nie
 uruchamia: prawy klik na plik → Właściwości → zaznacz „Odblokuj".
@@ -150,7 +142,6 @@ zdalnym wykonywaniem kodu na koncie administratora.
 | `wersja.json` | manifest — informacja o wersjach i sumy kontrolne |
 | `baza.json` | opisy pozycji autostartu i procesów |
 | `OptiLauncher.ps1` | program główny |
-| `SprawdzLacze.ps1` | diagnostyka sieci |
 
 ---
 
@@ -165,7 +156,6 @@ zdalnym wykonywaniem kodu na koncie administratora.
     baza.json          pobrane opisy
     raporty\           raporty HTML
     log_*.txt          logi sesji
-    Lacze\             dane Sprawdzania Łącza
 ```
 
 Odinstalowanie pyta, czy usunąć te dane. Bez `backup.json` nie da się już

@@ -2,37 +2,28 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.6.0",
+    "wersja": "9.0.0",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "C3D1E3E8247BCE839145BA0FFFBEBE4A8D499368E5021F413A9D8A04194BD488",
-      "rozmiar": 536330
+      "sha256": "2651A67124ACF5AB6CB13C238693335C278AF8B9C419982A6D23ED39706CC6BC",
+      "rozmiar": 552062
     },
     "zmiany": [
-      "Zakladka Lacze: pomiar predkosci pobierania i wysylania",
-      "Zakladka Lacze: publiczny adres IP z trzema metodami zapasowymi i ostrzezeniem o CGNAT",
-      "Zakladka Lacze: ping do Steam, Xbox Live, Discord i Riot Games",
-      "Zakladka Lacze: traceroute z czasem na kazdym skoku",
-      "Pasek postepu aktualizacji pokazuje procenty i kilobajty"
+      "Liczniki przestaja skakac przy zmianie cyfr - cyfry tabelaryczne w calym programie",
+      "Ostrzejszy drobny tekst (ClearType)",
+      "Puste zakladki maja wreszcie porzadny wyglad: ikona, wyjasnienie i przycisk prowadzacy dalej",
+      "Widoczny obrys zaznaczenia przy nawigacji klawiatura zamiast kropkowanej ramki",
+      "Pierscienie na Pulpicie z gradientem zamiast plaskiego koloru",
+      "Drobny druk czytelny we wszystkich dziesieciu motywach",
+      "Uporzadkowana skala czcionek: osiem stopni zamiast osiemnastu"
     ]
   },
-  "lacze": {
-    "wersja": "1.4.0",
-    "minimalna": "1.0.0",
-    "strona": "https://github.com/jerrykacper/OptiPakiet",
-    "ps1": {
-      "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/SprawdzLacze.ps1",
-      "sha256": "2F88813D948532D151677A7056750571D564911BBDA243176368898D8B053F97",
-      "rozmiar": 104579
-    },
-    "zmiany": []
-  },
   "baza": {
-    "wersja": 9,
+    "wersja": 13,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "9ABEC1553D48ED2E0F3CD1636990385FCFA48990EE090250BA896337C7043D24",
-    "rozmiar": 27177
+    "sha256": "BE35FEE10D8EF8210DFC52F8CBBB8638CFEE32CEAD31B484FFF674D45FD8E620",
+    "rozmiar": 27178
   }
 }

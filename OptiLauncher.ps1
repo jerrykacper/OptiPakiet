@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.6.0'
+$AppWersja  = '9.0.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -824,7 +824,7 @@ sprawdzenia - suma kontrolna SHA256 i test skladni. Stara wersja
 zostaje obok jako OptiLauncher.ps1.bak; jesli nowa nie wstanie
 w ciagu kilku sekund, wraca poprzednia.
 
-Recznie: START.bat > [8], albo -Tryb aktualizuj z wiersza polecen.
+Recznie: START.bat > [5], albo -Tryb aktualizuj z wiersza polecen.
 
 
 DANE PROGRAMU
@@ -2030,7 +2030,7 @@ Start-Process cmd.exe -ArgumentList '/c','timeout /t 2 /nobreak >nul & rmdir /s 
 
         Clear-Host
         Write-Host ''
-        Write-Host '  SPRAWDZANIE LACZA' -ForegroundColor White
+        Write-Host '  POMIAR LACZA' -ForegroundColor White
         Write-Host "  $AppNazwa by $AppAutor - modul diagnostyczny" -ForegroundColor DarkGray
 
         Naglowek 'KARTA SIECIOWA'
@@ -2212,7 +2212,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.6'
+$AppVersion = '9.0'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -2279,7 +2279,7 @@ $Motywy = @(
        '#31404F' = '#3D2D53'
        '#3C5A80' = '#573488'
        '#3D4A5C' = '#493960'
-       '#4A586C' = '#574670'
+       '#61738D' = '#725C93'
        '#5C6B80' = '#6A5884'
        '#60A5FA' = '#F472B6'
        '#67E8F9' = '#C084FC'
@@ -2337,7 +2337,7 @@ $Motywy = @(
        '#31404F' = '#2F514A'
        '#3C5A80' = '#378575'
        '#3D4A5C' = '#3B5E57'
-       '#4A586C' = '#476F67'
+       '#61738D' = '#5D9187'
        '#5C6B80' = '#59837A'
        '#60A5FA' = '#38BDF8'
        '#67E8F9' = '#5EEAD4'
@@ -2395,7 +2395,7 @@ $Motywy = @(
        '#31404F' = '#504130'
        '#3C5A80' = '#82603A'
        '#3D4A5C' = '#5D4E3C'
-       '#4A586C' = '#6D5C49'
+       '#61738D' = '#8F7860'
        '#5C6B80' = '#816F5B'
        '#60A5FA' = '#F472B6'
        '#67E8F9' = '#FDBA74'
@@ -2453,7 +2453,7 @@ $Motywy = @(
        '#31404F' = '#503036'
        '#3C5A80' = '#823A46'
        '#3D4A5C' = '#5D3C42'
-       '#4A586C' = '#6D494F'
+       '#61738D' = '#8F6067'
        '#5C6B80' = '#815B61'
        '#60A5FA' = '#FB923C'
        '#67E8F9' = '#FB7185'
@@ -2511,7 +2511,7 @@ $Motywy = @(
        '#31404F' = '#3B3F45'
        '#3C5A80' = '#525C6A'
        '#3D4A5C' = '#474C52'
-       '#4A586C' = '#555A61'
+       '#61738D' = '#6F767F'
        '#5C6B80' = '#686D74'
        '#60A5FA' = '#94A3B8'
        '#67E8F9' = '#7DD3FC'
@@ -2569,7 +2569,7 @@ $Motywy = @(
        '#31404F' = '#314F4F'
        '#3C5A80' = '#3C7C80'
        '#3D4A5C' = '#3D5A5C'
-       '#4A586C' = '#4A696C'
+       '#61738D' = '#61898D'
        '#5C6B80' = '#5C7D80'
        '#60A5FA' = '#60F2FA'
        '#67E8F9' = '#67F9C1'
@@ -2628,7 +2628,7 @@ $Motywy = @(
        '#31404F' = '#303A50'
        '#3C5A80' = '#3A5182'
        '#3D4A5C' = '#3C475D'
-       '#4A586C' = '#49546D'
+       '#61738D' = '#606E8F'
        '#5C6B80' = '#667390'
        '#60A5FA' = '#75A1FE'
        '#67E8F9' = '#7CA5FD'
@@ -2686,7 +2686,7 @@ $Motywy = @(
        '#31404F' = '#50303F'
        '#3C5A80' = '#823A5C'
        '#3D4A5C' = '#5D3C4B'
-       '#4A586C' = '#6D495A'
+       '#61738D' = '#8F6076'
        '#5C6B80' = '#906679'
        '#60A5FA' = '#FE75B5'
        '#67E8F9' = '#FD7CB8'
@@ -2744,7 +2744,7 @@ $Motywy = @(
        '#31404F' = '#A3AEBE'
        '#3C5A80' = '#8FB0D6'
        '#3D4A5C' = '#94A0B2'
-       '#4A586C' = '#8894A6'
+       '#61738D' = '#79879B'
        '#5C6B80' = '#7A879A'
        '#60A5FA' = '#6366F1'
        '#67E8F9' = '#38BDF8'
@@ -2840,9 +2840,11 @@ $XamlText = @'
         MinHeight="740" MinWidth="1220"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         WindowStartupLocation="CenterScreen" Opacity="0"
-        FontFamily="Segoe UI" FontSize="13" TextOptions.TextFormattingMode="Display"
+        FontFamily="Segoe UI" FontSize="12.5" TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
-        RenderOptions.BitmapScalingMode="HighQuality">
+        RenderOptions.BitmapScalingMode="HighQuality"
+        Typography.NumeralAlignment="Tabular">
 
   <Window.Resources>
 
@@ -2853,7 +2855,7 @@ $XamlText = @'
     <SolidColorBrush x:Key="Line"     Color="#1E2A3D"/>
     <SolidColorBrush x:Key="Txt"      Color="#EAF2F8"/>
     <SolidColorBrush x:Key="Muted"    Color="#7E8DA1"/>
-    <SolidColorBrush x:Key="Dim"      Color="#4A586C"/>
+    <SolidColorBrush x:Key="Dim"      Color="#61738D"/>
     <SolidColorBrush x:Key="Accent"   Color="#22D3EE"/>
     <SolidColorBrush x:Key="Violet"   Color="#818CF8"/>
     <SolidColorBrush x:Key="Good"     Color="#34D399"/>
@@ -3172,7 +3174,7 @@ $XamlText = @'
               <Border x:Name="fill" CornerRadius="6" Background="{StaticResource AccentGrad}"
                       Opacity="0" Margin="7"/>
               <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
-                         FontSize="10" Foreground="#06121A" Opacity="0"
+                         FontSize="10.5" Foreground="#06121A" Opacity="0"
                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
             <ControlTemplate.Triggers>
@@ -3283,7 +3285,19 @@ $XamlText = @'
     </Style>
 
     <!-- ============ PRZYCISK OBRYSOWY ============ -->
+    <Style x:Key="Fokus">
+      <Setter Property="Control.Template">
+        <Setter.Value>
+          <ControlTemplate>
+            <Border CornerRadius="11" BorderBrush="{StaticResource Accent}" BorderThickness="2"
+                    Margin="-3" Opacity="0.85" SnapsToDevicePixels="True"/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="Ghost" TargetType="Button">
+      <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}"/>
       <Setter Property="Foreground" Value="{StaticResource Accent}"/>
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="Height" Value="33"/>
@@ -3366,6 +3380,7 @@ $XamlText = @'
 
     <!-- ============ PRZYCISK GLOWNY ============ -->
     <Style x:Key="Primary" TargetType="Button">
+      <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}"/>
       <Setter Property="Foreground" Value="#04121A"/>
       <Setter Property="Background" Value="{StaticResource AccentGrad}"/>
       <Setter Property="Height" Value="43"/>
@@ -3450,6 +3465,7 @@ $XamlText = @'
     </Style>
 
     <Style x:Key="Secondary" TargetType="Button">
+      <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}"/>
       <Setter Property="Foreground" Value="{StaticResource Txt}"/>
       <Setter Property="Background" Value="#182233"/>
       <Setter Property="Height" Value="43"/>
@@ -3575,6 +3591,7 @@ $XamlText = @'
     </Style>
 
     <Style x:Key="MiniIcon" TargetType="Button">
+      <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}"/>
       <Setter Property="Foreground" Value="{StaticResource Dim}"/>
       <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
       <Setter Property="FontSize" Value="9"/>
@@ -3634,7 +3651,7 @@ $XamlText = @'
                   <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="lupa" Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets"
-                           FontSize="11" Foreground="{StaticResource Dim}" VerticalAlignment="Center"/>
+                           FontSize="11.5" Foreground="{StaticResource Dim}" VerticalAlignment="Center"/>
                 <ScrollViewer x:Name="PART_ContentHost" Grid.Column="1" VerticalAlignment="Center"
                               Margin="8,0,0,0" Focusable="False" HorizontalScrollBarVisibility="Hidden"/>
               </Grid>
@@ -3729,30 +3746,30 @@ $XamlText = @'
                 <Border.RenderTransform>
                   <ScaleTransform x:Name="LogoMarkScale" ScaleX="0.3" ScaleY="0.3"/>
                 </Border.RenderTransform>
-                <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="12.5"
                            Foreground="#04121A" HorizontalAlignment="Center" VerticalAlignment="Center"/>
               </Border>
             </Grid>
             <TextBlock Text="OptiLauncher" Foreground="{StaticResource Txt}" FontWeight="Bold"
-                       FontSize="14.5" VerticalAlignment="Center" Margin="11,0,0,0"/>
+                       FontSize="14" VerticalAlignment="Center" Margin="11,0,0,0"/>
             <Border Background="#141E2E" CornerRadius="6" Padding="7,1,7,2" Margin="9,1,0,0"
                     VerticalAlignment="Center">
               <TextBlock x:Name="VerLabel" Text="v7.4" Foreground="{StaticResource Muted}" FontSize="10.5"/>
             </Border>
             <Border Background="#0F2E24" CornerRadius="6" Padding="9,2" Margin="14,0,0,0" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="9.5"
+                <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="10.5"
                            Foreground="{StaticResource Good}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBlock Text="Administrator" FontSize="11" Foreground="{StaticResource Good}"/>
+                <TextBlock Text="Administrator" FontSize="11.5" Foreground="{StaticResource Good}"/>
               </StackPanel>
             </Border>
             <Border x:Name="AktPill" Background="#141E2E" CornerRadius="6" Padding="9,2" Margin="9,0,0,0"
                     VerticalAlignment="Center" Cursor="Hand" Visibility="Collapsed"
                     ToolTip="Kliknij, żeby sprawdzić aktualizacje">
               <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="AktPillIcon" Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="9.5"
+                <TextBlock x:Name="AktPillIcon" Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="10.5"
                            Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBlock x:Name="AktPillText" Text="" FontSize="11" Foreground="{StaticResource Muted}"/>
+                <TextBlock x:Name="AktPillText" Text="" FontSize="11.5" Foreground="{StaticResource Muted}"/>
               </StackPanel>
             </Border>
           </StackPanel>
@@ -3784,11 +3801,11 @@ $XamlText = @'
                           VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
                   <TextBlock Text="SPRZĘT" Style="{StaticResource Label}"/>
                 </StackPanel>
-                <TextBlock x:Name="HwCpu" Text="CPU: —" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                <TextBlock x:Name="HwGpu" Text="GPU: —" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                <TextBlock x:Name="HwRam" Text="RAM: —" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                <TextBlock x:Name="HwDsk" Text="Dysk: —" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                <TextBlock x:Name="HwOs"  Text="OS: —"  Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap"/>
+                <TextBlock x:Name="HwCpu" Text="CPU: —" Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <TextBlock x:Name="HwGpu" Text="GPU: —" Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <TextBlock x:Name="HwRam" Text="RAM: —" Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <TextBlock x:Name="HwDsk" Text="Dysk: —" Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <TextBlock x:Name="HwOs"  Text="OS: —"  Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap"/>
               </StackPanel>
             </Border>
           </Popup>
@@ -3856,7 +3873,7 @@ $XamlText = @'
                   <StackPanel>
                     <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                HorizontalAlignment="Center" Margin="0,0,0,3"/>
-                    <TextBlock Text="Punkt przywracania" FontSize="10" TextWrapping="Wrap"
+                    <TextBlock Text="Punkt przywracania" FontSize="10.5" TextWrapping="Wrap"
                                TextAlignment="Center" LineHeight="12"/>
                   </StackPanel>
                 </Button>
@@ -3865,7 +3882,7 @@ $XamlText = @'
                   <StackPanel>
                     <TextBlock Text="&#xE7A7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                HorizontalAlignment="Center" Margin="0,0,0,3"/>
-                    <TextBlock Text="Przywróć wszystko" FontSize="10" TextWrapping="Wrap"
+                    <TextBlock Text="Przywróć wszystko" FontSize="10.5" TextWrapping="Wrap"
                                TextAlignment="Center" LineHeight="12"/>
                   </StackPanel>
                 </Button>
@@ -3898,11 +3915,11 @@ $XamlText = @'
               </Grid.ColumnDefinitions>
 
               <TextBlock Grid.Column="0" Text="&#xE896;" FontFamily="Segoe MDL2 Assets"
-                         FontSize="15" Foreground="#FBBF24"
+                         FontSize="14" Foreground="#FBBF24"
                          VerticalAlignment="Center" Margin="2,0,13,0"/>
 
               <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock x:Name="AktBannerTytul" Text="" FontSize="13.5" FontWeight="SemiBold"
+                <TextBlock x:Name="AktBannerTytul" Text="" FontSize="14" FontWeight="SemiBold"
                            Foreground="#FBBF24"/>
                 <TextBlock x:Name="AktBannerOpis" Text="" FontSize="11.5" TextWrapping="Wrap"
                            Foreground="{StaticResource Dim}" Margin="0,3,12,0"/>
@@ -3926,7 +3943,7 @@ $XamlText = @'
               <Grid Width="212" Margin="0,0,8,0">
                 <TextBox x:Name="SearchBox" Style="{StaticResource Search}"/>
                 <TextBlock x:Name="SearchPlace" Text="Szukaj zadania   (Ctrl+F)" Foreground="{StaticResource Dim}"
-                           FontSize="12" VerticalAlignment="Center" Margin="31,0,0,0" IsHitTestVisible="False"/>
+                           FontSize="12.5" VerticalAlignment="Center" Margin="31,0,0,0" IsHitTestVisible="False"/>
                 <Button x:Name="SearchClear" Content="&#xE711;" Style="{StaticResource MiniIcon}"
                         HorizontalAlignment="Right" Margin="0,0,6,0" Visibility="Collapsed"
                         ToolTip="Wyczyść filtr   (Esc)"/>
@@ -3957,7 +3974,7 @@ $XamlText = @'
                       <Grid Height="132" Margin="0,8,0,0">
                         <Border Width="130" Height="130" CornerRadius="65" Background="{StaticResource Aura}"/>
                         <Ellipse Width="112" Height="112" Stroke="#141D2C" StrokeThickness="9"/>
-                        <Path x:Name="RingCpu" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource Accent}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <Path x:Name="RingCpu" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource AccentGrad}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                           <TextBlock x:Name="TxtCpu" Text="—" Foreground="{StaticResource Txt}" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center"/>
                           <TextBlock Text="obciążenie" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Center"/>
@@ -3971,7 +3988,7 @@ $XamlText = @'
                       <Grid Height="132" Margin="0,8,0,0">
                         <Border Width="130" Height="130" CornerRadius="65" Background="{StaticResource Aura}"/>
                         <Ellipse Width="112" Height="112" Stroke="#141D2C" StrokeThickness="9"/>
-                        <Path x:Name="RingRam" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource Accent}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <Path x:Name="RingRam" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource AccentGrad}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                           <TextBlock x:Name="TxtRam" Text="—" Foreground="{StaticResource Txt}" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center"/>
                           <TextBlock x:Name="TxtRamSub" Text="zajęte" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Center"/>
@@ -3985,7 +4002,7 @@ $XamlText = @'
                       <Grid Height="132" Margin="0,8,0,0">
                         <Border Width="130" Height="130" CornerRadius="65" Background="{StaticResource Aura}"/>
                         <Ellipse Width="112" Height="112" Stroke="#141D2C" StrokeThickness="9"/>
-                        <Path x:Name="RingDsk" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource Accent}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <Path x:Name="RingDsk" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource AccentGrad}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                           <TextBlock x:Name="TxtDsk" Text="—" Foreground="{StaticResource Txt}" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center"/>
                           <TextBlock x:Name="TxtDskSub" Text="zajęte" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Center"/>
@@ -4023,10 +4040,10 @@ $XamlText = @'
                                  FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <Grid Margin="0,6,0,0">
-                      <TextBlock Text="100%" Foreground="{StaticResource Dim}" FontSize="10" HorizontalAlignment="Left"
+                      <TextBlock Text="100%" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Left"
                                  VerticalAlignment="Top" Margin="0,-104,0,0"/>
-                      <TextBlock x:Name="SparkOkno" Text="ostatnie 2 minuty" Foreground="{StaticResource Dim}" FontSize="10"/>
-                      <TextBlock Text="teraz" Foreground="{StaticResource Dim}" FontSize="10" HorizontalAlignment="Right"/>
+                      <TextBlock x:Name="SparkOkno" Text="ostatnie 2 minuty" Foreground="{StaticResource Dim}" FontSize="10.5"/>
+                      <TextBlock Text="teraz" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Right"/>
                     </Grid>
                   </StackPanel>
                 </Border>
@@ -4038,7 +4055,7 @@ $XamlText = @'
                               VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
                       <TextBlock Text="STAN OPTYMALIZACJI" Style="{StaticResource Label}"/>
                     </StackPanel>
-                    <TextBlock x:Name="DashScore" Text="—" Foreground="{StaticResource Txt}" FontSize="19" FontWeight="Bold"/>
+                    <TextBlock x:Name="DashScore" Text="—" Foreground="{StaticResource Txt}" FontSize="18" FontWeight="Bold"/>
                     <ProgressBar x:Name="DashBar" Minimum="0" Maximum="100" Value="0" Margin="0,11,0,0"/>
                     <TextBlock x:Name="DashHint" Text="" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,9,0,0" TextWrapping="Wrap"/>
                   </StackPanel>
@@ -4055,7 +4072,7 @@ $XamlText = @'
                               VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
                       <TextBlock Text="CZAS URUCHAMIANIA" Style="{StaticResource Label}"/>
                     </StackPanel>
-                    <TextBlock x:Name="BootTime" Text="—" Foreground="{StaticResource Txt}" FontSize="19" FontWeight="Bold"/>
+                    <TextBlock x:Name="BootTime" Text="—" Foreground="{StaticResource Txt}" FontSize="18" FontWeight="Bold"/>
                     <TextBlock x:Name="BootHint" Text="Odczytuję pomiary Windows..." Foreground="{StaticResource Muted}"
                                FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/>
                     <StackPanel x:Name="BootHost" Margin="0,11,0,0"/>
@@ -4075,27 +4092,27 @@ $XamlText = @'
                   </Grid.ColumnDefinitions>
                   <Button x:Name="BtnDashFull" Grid.Column="0" Style="{StaticResource Primary}" Height="62" Margin="0,0,6,0">
                     <StackPanel Orientation="Horizontal">
-                      <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="17" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                      <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0"/>
                       <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Pełna optymalizacja" FontSize="13.5" FontWeight="Bold"/>
+                        <TextBlock Text="Pełna optymalizacja" FontSize="14" FontWeight="Bold"/>
                         <TextBlock Text="wszystko, co zalecane" FontSize="10.5" Opacity="0.7" Margin="0,1,0,0"/>
                       </StackPanel>
                     </StackPanel>
                   </Button>
                   <Button x:Name="BtnDashGames" Grid.Column="1" Style="{StaticResource Secondary}" Height="62" Margin="6,0,6,0">
                     <StackPanel Orientation="Horizontal">
-                      <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="17" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#22D3EE"/>
+                      <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#22D3EE"/>
                       <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Moje gry" FontSize="13.5" FontWeight="SemiBold"/>
+                        <TextBlock Text="Moje gry" FontSize="14" FontWeight="SemiBold"/>
                         <TextBlock Text="ustawienia per gra" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,1,0,0"/>
                       </StackPanel>
                     </StackPanel>
                   </Button>
                   <Button x:Name="BtnDashDiag" Grid.Column="2" Style="{StaticResource Secondary}" Height="62" Margin="6,0,0,0">
                     <StackPanel Orientation="Horizontal">
-                      <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="17" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#818CF8"/>
+                      <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#818CF8"/>
                       <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Skanuj system" FontSize="13.5" FontWeight="SemiBold"/>
+                        <TextBlock Text="Skanuj system" FontSize="14" FontWeight="SemiBold"/>
                         <TextBlock Text="pełna diagnostyka" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,1,0,0"/>
                       </StackPanel>
                     </StackPanel>
@@ -4110,7 +4127,7 @@ $XamlText = @'
                       <TextBlock Text="OSTATNIE DZIAŁANIA" Style="{StaticResource Label}"/>
                     </StackPanel>
                     <TextBlock x:Name="DashRecent" Text="Brak zapisanych zmian." Foreground="{StaticResource Muted}"
-                               FontSize="12" TextWrapping="Wrap" LineHeight="20"/>
+                               FontSize="12.5" TextWrapping="Wrap" LineHeight="20"/>
                   </StackPanel>
                 </Border>
               </StackPanel>
@@ -4122,7 +4139,7 @@ $XamlText = @'
                     <TextBlock Text="Optymalizacja pojedynczej gry" Style="{StaticResource CardHead}"/>
                     <TextBlock Style="{StaticResource Body}" Margin="0,6,0,0"
                                Text="Dodaj plik .exe gry, a program ustawi dla niej: wysoką wydajność GPU, wyłączone optymalizacje pełnoekranowe, wysoki priorytet procesora i we/wy oraz brak ograniczania mocy. Każdą grę da się cofnąć osobno."/>
-                    <TextBlock x:Name="GameInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="GameInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,10,0,0" TextWrapping="Wrap"/>
                     <Border Style="{StaticResource Hair}"/>
                     <WrapPanel>
                       <Button x:Name="BtnGameAdd"    Content="Dodaj grę"              Style="{StaticResource Primary}"   Height="38" Margin="0,0,8,8"/>
@@ -4134,8 +4151,23 @@ $XamlText = @'
                   </StackPanel>
                 </Border>
                 <StackPanel x:Name="GameHost"/>
-                <TextBlock x:Name="GameEmpty" Text="Nie dodano jeszcze żadnej gry. Kliknij Dodaj grę i wskaż plik .exe, albo Wykryj gry, żeby przeszukać biblioteki Steam i Epic."
-                           Foreground="{StaticResource Dim}" FontSize="12.5" TextWrapping="Wrap" Margin="4,10,40,0" LineHeight="20"/>
+                <Border x:Name="GameEmpty" Visibility="Collapsed" Background="Transparent" Margin="4,18,4,10">
+                  <StackPanel HorizontalAlignment="Center">
+                    <Border Width="58" Height="58" CornerRadius="29" HorizontalAlignment="Center"
+                            Background="#141E2E">
+                      <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="23"
+                                 Foreground="{StaticResource Dim}"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Nie dodano jeszcze żadnej gry" Foreground="{StaticResource Txt}" FontSize="14" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock Text="Wskaż plik .exe przyciskiem powyżej albo pozwól programowi przeszukać biblioteki Steam i Epic." Foreground="{StaticResource Dim}" FontSize="11.5"
+                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420"
+                               LineHeight="18" Margin="0,7,0,0"/>
+                    <Button x:Name="BtnGameDetectEmpty" Content="Wykryj gry" Style="{StaticResource Secondary}"
+                            Height="38" MinWidth="170" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                  </StackPanel>
+                </Border>
               </StackPanel>
 
               <!-- ============ AUTOSTART ============ -->
@@ -4145,7 +4177,7 @@ $XamlText = @'
                     <TextBlock Text="Programy uruchamiane przy starcie" Style="{StaticResource CardHead}"/>
                     <TextBlock Style="{StaticResource Body}" Margin="0,6,0,0"
                                Text="Każda pozycja wydłuża rozruch i zajmuje pamięć przez cały czas pracy komputera – zwykle jest to większy zysk niż wszystkie ustawienia rejestru razem wzięte. Wyłączenie działa dokładnie tak jak w Menedżerze zadań: wpis zostaje na swoim miejscu, zmienia się wyłącznie jego stan, więc w każdej chwili można go włączyć z powrotem."/>
-                    <TextBlock x:Name="StartupInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="StartupInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,10,0,0"/>
                     <Border Style="{StaticResource Hair}"/>
                     <WrapPanel>
                       <Button x:Name="BtnStartupRefresh" Content="Odśwież listę" Style="{StaticResource Secondary}" Height="38"/>
@@ -4153,8 +4185,21 @@ $XamlText = @'
                   </StackPanel>
                 </Border>
                 <StackPanel x:Name="StartupHost"/>
-                <TextBlock x:Name="StartupEmpty" Text="Nie znaleziono żadnych programów w autostarcie. To dobra wiadomość."
-                           Foreground="{StaticResource Dim}" FontSize="12.5" TextWrapping="Wrap" Margin="4,10,40,0" LineHeight="20"/>
+                <Border x:Name="StartupEmpty" Visibility="Collapsed" Background="Transparent" Margin="4,18,4,10">
+                  <StackPanel HorizontalAlignment="Center">
+                    <Border Width="58" Height="58" CornerRadius="29" HorizontalAlignment="Center"
+                            Background="#141E2E">
+                      <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="23"
+                                 Foreground="{StaticResource Good}"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Autostart jest pusty" Foreground="{StaticResource Txt}" FontSize="14" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock Text="Żaden program nie uruchamia się razem z Windows. To dobra wiadomość - nie ma tu czego wyłączać." Foreground="{StaticResource Dim}" FontSize="11.5"
+                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420"
+                               LineHeight="18" Margin="0,7,0,0"/>
+                  </StackPanel>
+                </Border>
               </StackPanel>
 
               <StackPanel x:Name="PanelGry" Visibility="Collapsed"/>
@@ -4168,7 +4213,7 @@ $XamlText = @'
                                Text="Procesy zgrupowane po nazwie i posortowane od najbardziej pamięciożernych. Zamknięcie nie zmienia niczego w systemie – przy następnym uruchomieniu program wróci. Jeśli chcesz, żeby nie wracał, wyłącz go w zakładce Autostart."/>
                     <TextBlock Style="{StaticResource Fine}" Margin="0,8,0,0"
                                Text="Procesy systemowe są zablokowane – ich zamknięcie kończy się zawieszeniem pulpitu lub restartem Windows."/>
-                    <TextBlock x:Name="ProcInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="ProcInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,10,0,0"/>
                     <Border Style="{StaticResource Hair}"/>
                     <WrapPanel>
                       <Button x:Name="BtnProcRefresh" Content="Odśwież" Style="{StaticResource Secondary}" Height="38"/>
@@ -4187,7 +4232,7 @@ $XamlText = @'
                                Text="Program mierzy opóźnienie, jitter i straty osobno do routera i osobno do internetu — bo to rozstrzyga, gdzie naprawdę jest problem. Jeśli ping do routera skacze, winne jest Wi-Fi albo kabel i żadne ustawienie systemu tego nie naprawi."/>
                     <TextBlock Style="{StaticResource Fine}" Margin="0,8,0,0"
                                Text="Świadomie nie ma tu rezerwacji pasma QoS, TcpAckFrequency ani wyłączania algorytmu Nagle'a. To albo mity, albo tweaki, które na dzisiejszych łączach szkodzą częściej, niż pomagają."/>
-                    <TextBlock x:Name="LinkInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="LinkInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,10,0,0"/>
                     <Border Style="{StaticResource Hair}"/>
                     <WrapPanel>
                       <Button x:Name="BtnLinkScan" Content="Zmierz łącze" Style="{StaticResource Primary}" Height="38"/>
@@ -4207,7 +4252,7 @@ $XamlText = @'
                                Text="Program pokazuje wyłącznie aplikacje z własnej, ręcznie sprawdzonej listy – niczego innego nie ruszy. To celowo odwrotność typowych debloaterów, które kasują wszystko poza czarną listą i przy okazji wywalają ludziom Sklep albo komponenty systemowe."/>
                     <TextBlock Style="{StaticResource Fine}" Margin="0,8,0,0"
                                Text="Każdą z nich można zainstalować z powrotem ze Sklepu Microsoft. Usunięcie dotyczy bieżącego użytkownika."/>
-                    <TextBlock x:Name="AppsInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="AppsInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,10,0,0"/>
                     <Border Style="{StaticResource Hair}"/>
                     <WrapPanel>
                       <Button x:Name="BtnAppsRefresh" Content="Odśwież listę" Style="{StaticResource Secondary}" Height="38"/>
@@ -4215,8 +4260,21 @@ $XamlText = @'
                   </StackPanel>
                 </Border>
                 <StackPanel x:Name="AppsHost"/>
-                <TextBlock x:Name="AppsEmpty" Text="Nie znaleziono żadnej z aplikacji z listy. Ten system jest już czysty."
-                           Foreground="{StaticResource Dim}" FontSize="12.5" TextWrapping="Wrap" Margin="4,10,40,0" LineHeight="20"/>
+                <Border x:Name="AppsEmpty" Visibility="Collapsed" Background="Transparent" Margin="4,18,4,10">
+                  <StackPanel HorizontalAlignment="Center">
+                    <Border Width="58" Height="58" CornerRadius="29" HorizontalAlignment="Center"
+                            Background="#141E2E">
+                      <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="23"
+                                 Foreground="{StaticResource Good}"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Nie ma czego usuwać" Foreground="{StaticResource Txt}" FontSize="14" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock Text="Żadnej z wbudowanych aplikacji z listy nie ma w tym systemie. Ktoś już tu posprzątał." Foreground="{StaticResource Dim}" FontSize="11.5"
+                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420"
+                               LineHeight="18" Margin="0,7,0,0"/>
+                  </StackPanel>
+                </Border>
               </StackPanel>
 
               <StackPanel x:Name="PanelSkin" Visibility="Collapsed">
@@ -4227,7 +4285,7 @@ $XamlText = @'
                                Text="Wybór dotyczy wyłącznie wyglądu programu — żadne ustawienie systemu nie jest zmieniane. Zielony, żółty i czerwony zostają w każdym motywie takie same, bo niosą znaczenie: zastosowane, ostrożnie, nie weszło."/>
                     <TextBlock Style="{StaticResource Fine}" Margin="0,8,0,0"
                                Text="Zmiana wymaga ponownego uruchomienia programu — kolory są wtapiane w interfejs przy jego budowaniu. Program zrobi to sam, a niezapisane wyniki skanu przepadną."/>
-                    <TextBlock x:Name="SkinInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="SkinInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,10,0,0"/>
                   </StackPanel>
                 </Border>
                 <Border Style="{StaticResource PlainCard}" Margin="0,0,0,14">
@@ -4240,7 +4298,7 @@ $XamlText = @'
                       <TextBlock Text="Gęstość widoku" Style="{StaticResource CardHead}"/>
                       <TextBlock Style="{StaticResource Body}" Margin="0,6,0,0"
                                  Text="Tryb zwarty ściąga marginesy i wysokości pozycji — na ekranie mieści się wtedy o kilka kart więcej. Rozmiary liter zostają bez zmian."/>
-                      <TextBlock x:Name="SkinGestInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,9,0,0"/>
+                      <TextBlock x:Name="SkinGestInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,9,0,0"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                       <Button x:Name="BtnGestKomfort" Content="Komfortowy" Style="{StaticResource Ghost}" Width="118" Margin="0,0,8,0"/>
@@ -4261,7 +4319,7 @@ $XamlText = @'
                                  Text="Okno przejmuje rozmyte tło pulpitu, tak jak Ustawienia Windows 11. Rysuje je menedżer okien, nie program."/>
                       <TextBlock Style="{StaticResource Fine}" Margin="0,8,0,0"
                                  Text="Wymaga Windows 11 (kompilacja 22000 lub nowsza). Na starszym systemie ustawienie zostanie pominięte, a okno wygląda jak dotąd. Przy włączonej Mice zaokrąglenie okna rysuje system, a nie program."/>
-                      <TextBlock x:Name="SkinMicaInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12" Margin="0,9,0,0"/>
+                      <TextBlock x:Name="SkinMicaInfo" Text="" Foreground="{StaticResource Accent}" FontSize="12.5" Margin="0,9,0,0"/>
                     </StackPanel>
                     <Button x:Name="BtnMica" Grid.Column="1" Content="Włącz" Style="{StaticResource Ghost}"
                             Width="118" VerticalAlignment="Center"/>
@@ -4323,7 +4381,7 @@ $XamlText = @'
                     <ScaleTransform ScaleX="0.6" ScaleY="0.6"/>
                   </Ellipse.RenderTransform>
                 </Ellipse>
-                <TextBlock x:Name="ToastIcon" Text="&#xE930;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                <TextBlock x:Name="ToastIcon" Text="&#xE930;" FontFamily="Segoe MDL2 Assets" FontSize="12.5"
                            Foreground="{StaticResource Good}" HorizontalAlignment="Center" VerticalAlignment="Center"
                            RenderTransformOrigin="0.5,0.5">
                   <TextBlock.RenderTransform>
@@ -4348,7 +4406,7 @@ $XamlText = @'
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
               <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                <TextBlock x:Name="SelInfo" Text="Zaznaczono 0 zadań" Foreground="{StaticResource Muted}" FontSize="12"/>
+                <TextBlock x:Name="SelInfo" Text="Zaznaczono 0 zadań" Foreground="{StaticResource Muted}" FontSize="12.5"/>
                 <TextBlock x:Name="RebootInfo" Text="" Foreground="{StaticResource Warn}" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap"/>
               </StackPanel>
               <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -4378,7 +4436,7 @@ $XamlText = @'
                 <TextBlock Text="KONSOLA" Style="{StaticResource Label}" VerticalAlignment="Center"/>
               </StackPanel>
               <Button x:Name="BtnOpenLog" Content="Otwórz log" Style="{StaticResource GhostDim}"
-                      HorizontalAlignment="Right" Height="27" FontSize="11" MinWidth="0"/>
+                      HorizontalAlignment="Right" Height="27" FontSize="11.5" MinWidth="0"/>
             </Grid>
             <StackPanel Grid.Row="1" Margin="0,0,0,11">
               <TextBlock x:Name="StatusText" Text="Gotowy." Foreground="{StaticResource Good}"
@@ -4392,7 +4450,7 @@ $XamlText = @'
               </ScrollViewer>
             </Border>
             <TextBlock Grid.Row="3" Text="OptiLauncher by Jerremi" Foreground="#31404F"
-                       FontSize="11" HorizontalAlignment="Center" Margin="0,13,0,0"/>
+                       FontSize="11.5" HorizontalAlignment="Center" Margin="0,13,0,0"/>
           </Grid>
         </Border>
       </Grid>
@@ -4411,14 +4469,14 @@ $XamlText = @'
               <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="23"
                          Foreground="{StaticResource Bad}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
-            <TextBlock Text="Restart komputera" Foreground="{StaticResource Txt}" FontSize="17.5"
+            <TextBlock Text="Restart komputera" Foreground="{StaticResource Txt}" FontSize="18"
                        FontWeight="Bold" HorizontalAlignment="Center"/>
             <TextBlock Text="Zapisz otwarte pliki - za chwilę komputer się wyłączy i uruchomi ponownie."
-                       Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{StaticResource Muted}" FontSize="12.5" TextWrapping="Wrap"
                        TextAlignment="Center" Margin="0,9,0,20"/>
             <TextBlock x:Name="RestartCountdown" Text="10" Foreground="{StaticResource Bad}"
                        FontSize="40" FontWeight="Bold" HorizontalAlignment="Center"/>
-            <TextBlock Text="sekund do restartu" Foreground="{StaticResource Dim}" FontSize="11"
+            <TextBlock Text="sekund do restartu" Foreground="{StaticResource Dim}" FontSize="11.5"
                        HorizontalAlignment="Center" Margin="0,2,0,22"/>
             <Grid>
               <Grid.ColumnDefinitions>
@@ -4465,7 +4523,7 @@ $UI = @{}
 foreach ($n in @('TitleBar','BtnMin','BtnClose','VerLabel','LogoMark','LogoRing',
                  'NavDash','NavGames','NavDiag','NavGry','NavSys','NavClean','NavNet','NavTools',
                  'PanelDash','PanelGames','PanelDiag','PanelGry','PanelSys','PanelClean','PanelNet','PanelTools',
-                 'DiagHost','GameHost','GameEmpty','BtnGameAdd','BtnGameDetect','BtnGameAll',
+                 'DiagHost','GameHost','GameEmpty','BtnGameDetectEmpty','BtnGameAdd','BtnGameDetect','BtnGameAll',
                  'GameInfo','BtnGameFilter','BtnGameClean',
                  'AktPill','AktPillIcon','AktPillText',
                  'AktBanner','AktBannerTytul','AktBannerOpis','AktBannerPokaz','AktBannerUkryj',
@@ -7806,7 +7864,7 @@ function New-TaskCard {
         if ($look) {
             $zr = New-Object Windows.Controls.TextBlock
             $zr.TextWrapping = 'Wrap'
-            $zr.FontSize = 11
+            $zr.FontSize = 11.5
             $zr.Margin = '0,7,16,0'
             $zr.LineHeight = 17
 
@@ -7842,7 +7900,7 @@ function New-TaskCard {
         if ($tresc) {
             $uw = New-Object Windows.Controls.TextBlock
             $uw.TextWrapping = 'Wrap'
-            $uw.FontSize = 11
+            $uw.FontSize = 11.5
             $uw.Margin = '0,7,16,0'
             $uw.LineHeight = 17
 
@@ -7875,7 +7933,7 @@ function New-TaskCard {
         $pill.Margin            = New-Object Windows.Thickness 0,0,12,0
         $pill.VerticalAlignment = 'Center'
         $pill.MinWidth          = 108
-        $pillText.FontSize = 11; $pillText.FontWeight = 'SemiBold'
+        $pillText.FontSize = 11.5; $pillText.FontWeight = 'SemiBold'
 
         $pillDot.Width  = 6; $pillDot.Height = 6
         $pillDot.CornerRadius = New-Object Windows.CornerRadius 3
@@ -8205,7 +8263,7 @@ function Render-Diag {
         $head = New-Object Windows.Controls.TextBlock
         $head.Text = $sec.Title
         $head.Foreground = $Window.FindResource('Accent')
-        $head.FontSize = 13; $head.FontWeight = 'Bold'
+        $head.FontSize = 12.5; $head.FontWeight = 'Bold'
         $head.Margin = '0,0,0,12'
         $stack.Children.Add($head) | Out-Null
 
@@ -8220,7 +8278,7 @@ function Render-Diag {
 
             $k = New-Object Windows.Controls.TextBlock
             $k.Text = "$($r.k)"; $k.Foreground = $Window.FindResource('Muted')
-            $k.FontSize = 12; $k.TextWrapping = 'Wrap'; $k.Margin = '0,0,14,0'
+            $k.FontSize = 12.5; $k.TextWrapping = 'Wrap'; $k.Margin = '0,0,14,0'
             [Windows.Controls.Grid]::SetColumn($k, 0)
             $g.Children.Add($k) | Out-Null
 
@@ -8240,7 +8298,7 @@ function Render-Diag {
             } else {
                 $v = New-Object Windows.Controls.TextBlock
                 $v.Text = "$($r.v)"; $v.Foreground = $Window.FindResource('Txt')
-                $v.FontSize = 12; $v.TextWrapping = 'Wrap'
+                $v.FontSize = 12.5; $v.TextWrapping = 'Wrap'
                 [Windows.Controls.Grid]::SetColumn($v, 1)
                 $g.Children.Add($v) | Out-Null
             }
@@ -8443,6 +8501,304 @@ $Pages = @(
     @{ Nav=$UI.NavTools; Panel=$UI.PanelTools; Tasks=$true;  Title='Narzędzia';        Desc='Skróty do paneli systemowych i przydatnych programów.' }
     @{ Nav=$UI.NavSkin;  Panel=$UI.PanelSkin;  Tasks=$false; Title='Wygląd';           Desc='Kolorystyka programu. Nie zmienia niczego w systemie.' }
 )
+
+# =====================================================================
+#  PALETA POLECEN  (Ctrl+K)
+#
+#  Program ma 38 zadan, 11 narzedzi i 14 zakladek. Przy takiej liczbie
+#  najwiekszym kosztem przestaje byc wykonanie czegokolwiek, a staje sie
+#  ZNALEZIENIE tego - trzeba pamietac, w ktorej zakladce co lezy.
+#  Paleta zdejmuje ten koszt: jedno okno, wpisujesz czego szukasz,
+#  strzalki i Enter.
+#
+#  Szuka po nazwie, opisie, identyfikatorze i kategorii, wiec "dns",
+#  "restore" albo "telemetria" trafia niezaleznie od tego, jak kto
+#  nazywa dana rzecz w glowie.
+# =====================================================================
+
+$script:PaletaWynik  = @()
+$script:PaletaIndeks = 0
+
+# Nikt nie wstukuje ogonkow w polu wyszukiwania. "pamiec" ma znalezc
+# "pamięć", a "wyglad" - "Wygląd". Skladamy obie strony do postaci bez
+# znakow diakrytycznych, zamiast wymagac od uzytkownika precyzji.
+# Klucze tablicy mieszajacej w PowerShellu NIE rozrozniaja wielkosci
+# liter, wiec 'ą' i 'Ą' to ten sam klucz - stad tylko male litery,
+# a wielkie sprowadzamy do malych przed odczytem.
+$script:MapaOgonkow = @{
+    'ą'='a'; 'ć'='c'; 'ę'='e'; 'ł'='l'; 'ń'='n'; 'ó'='o'; 'ś'='s'; 'ź'='z'; 'ż'='z'
+}
+
+function Bez-Ogonkow {
+    param([string]$T)
+    if (-not $T) { return '' }
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($z in $T.ToLower().ToCharArray()) {
+        $k = "$z"
+        if ($script:MapaOgonkow.ContainsKey($k)) { [void]$sb.Append($script:MapaOgonkow[$k]) }
+        else { [void]$sb.Append($k) }
+    }
+    return $sb.ToString()
+}
+
+# Jedna lista wszystkiego, co da sie uruchomic albo otworzyc.
+function Zbuduj-Palete {
+    $poz = New-Object System.Collections.ArrayList
+
+    foreach ($t in $Tasks) {
+        $kat = 'Zadanie'
+        if ($t.Tool) { $kat = 'Narzędzie' }
+        [void]$poz.Add([pscustomobject]@{
+            Tytul   = "$($t.Title)"
+            Opis    = "$($t.Desc)"
+            Kat     = $kat
+            Szukane = Bez-Ogonkow ("$($t.Title) $($t.Desc) $($t.Id) $($t.Cat)")
+            Akcja   = 'zadanie'
+            Dane    = "$($t.Id)"
+        })
+    }
+
+    foreach ($p in $Pages) {
+        [void]$poz.Add([pscustomobject]@{
+            Tytul   = "$($p.Title)"
+            Opis    = "$($p.Desc)"
+            Kat     = 'Zakładka'
+            Szukane = Bez-Ogonkow ("$($p.Title) $($p.Desc)")
+            Akcja   = 'zakladka'
+            Dane    = $p
+        })
+    }
+
+    # Rzeczy, ktore nie sa ani zadaniem, ani zakladka, a ktorych i tak
+    # sie szuka.
+    $extra = @(
+        @{ T='Punkt przywracania';   O='Tworzy punkt przywracania systemu przed zmianami.'; A='restorepoint' }
+        @{ T='Przywróć wszystko';    O='Cofa wszystkie zmiany zapisane w backup.json.';     A='revertall'    }
+        @{ T='Skanuj system';        O='Odświeża stan wszystkich zadań.';                   A='scan'         }
+        @{ T='Sprawdź aktualizacje'; O='Pyta serwer o nowszą wersję programu.';             A='akt'          }
+    )
+    foreach ($e in $extra) {
+        [void]$poz.Add([pscustomobject]@{
+            Tytul   = $e.T
+            Opis    = $e.O
+            Kat     = 'Program'
+            Szukane = Bez-Ogonkow ("$($e.T) $($e.O)")
+            Akcja   = 'program'
+            Dane    = $e.A
+        })
+    }
+
+    return ,@($poz)
+}
+
+function Wykonaj-ZPalety {
+    param($Poz)
+    if (-not $Poz) { return }
+
+    switch ($Poz.Akcja) {
+        'zakladka' { $Poz.Dane.Nav.IsChecked = $true }
+        'zadanie'  {
+            if ($Poz.Dane -eq 't_winpin') { Pokaz-BlokadyWinget; return }
+            if ($sync.Busy) { Add-Log 'Trwa inne zadanie - poczekaj chwilę.' 'warn'; return }
+            Start-Worker 'apply' @($Poz.Dane)
+        }
+        'program'  {
+            switch ($Poz.Dane) {
+                'restorepoint' { if (-not $sync.Busy) { Start-Worker 'apply' @('restorepoint') } }
+                'revertall'    { $UI.BtnRestore.RaiseEvent((New-Object Windows.RoutedEventArgs ([Windows.Controls.Button]::ClickEvent))) }
+                'scan'         { if (-not $sync.Busy) { Start-Worker 'scan' } }
+                'akt'          { Sprawdz-Recznie }
+            }
+        }
+    }
+}
+
+function Pokaz-Palete {
+    $wszystko = Zbuduj-Palete
+
+    $okno = New-Object Windows.Window
+    $okno.Title = 'Paleta poleceń'
+    $okno.Width = 620
+    $okno.Height = 460
+    $okno.WindowStyle = 'None'
+    $okno.AllowsTransparency = $true
+    $okno.Background = [Windows.Media.Brushes]::Transparent
+    $okno.ResizeMode = 'NoResize'
+    $okno.ShowInTaskbar = $false
+    try { $okno.Owner = $Window; $okno.WindowStartupLocation = 'CenterOwner' }
+    catch { $okno.WindowStartupLocation = 'CenterScreen' }
+
+    $ramka = New-Object Windows.Controls.Border
+    $ramka.Background      = Br '#0E1724'
+    $ramka.BorderBrush     = Br '#22D3EE'
+    $ramka.BorderThickness = New-Object Windows.Thickness 1
+    $ramka.CornerRadius    = New-Object Windows.CornerRadius 16
+    $ramka.Padding         = New-Object Windows.Thickness 16,14,16,14
+    $okno.Content = $ramka
+
+    $siatka = New-Object Windows.Controls.Grid
+    foreach ($h in @([Windows.GridLength]::Auto,
+                     (New-Object Windows.GridLength(1, [Windows.GridUnitType]::Star)),
+                     [Windows.GridLength]::Auto)) {
+        $rd = New-Object Windows.Controls.RowDefinition
+        $rd.Height = $h
+        $siatka.RowDefinitions.Add($rd)
+    }
+    $ramka.Child = $siatka
+
+    $pole = New-Object Windows.Controls.TextBox
+    $pole.FontSize = 18
+    $pole.Padding = New-Object Windows.Thickness 10,7,10,8
+    $pole.Background = Br '#0B121D'
+    $pole.Foreground = Br '#EAF2F8'
+    $pole.BorderBrush = Br '#1E2A3A'
+    $pole.CaretBrush = Br '#22D3EE'
+    $pole.Margin = New-Object Windows.Thickness 0,0,0,10
+    [Windows.Controls.Grid]::SetRow($pole, 0)
+    $siatka.Children.Add($pole) | Out-Null
+
+    $lista = New-Object Windows.Controls.ListBox
+    $lista.Background = [Windows.Media.Brushes]::Transparent
+    $lista.BorderThickness = New-Object Windows.Thickness 0
+    $lista.Foreground = Br '#C7D6E6'
+    [Windows.Controls.Grid]::SetRow($lista, 1)
+    $siatka.Children.Add($lista) | Out-Null
+
+    $stopka = New-Object Windows.Controls.TextBlock
+    $stopka.Text = 'Enter uruchamia   •   strzałki wybierają   •   Esc zamyka'
+    $stopka.Foreground = Br '#7E8DA1'
+    $stopka.FontSize = 11.5
+    $stopka.Margin = New-Object Windows.Thickness 2,10,0,0
+    [Windows.Controls.Grid]::SetRow($stopka, 2)
+    $siatka.Children.Add($stopka) | Out-Null
+
+    # Kopie lokalne - bez nich scriptblocki nizej nie przechwyca kontrolek
+    # i zobaczymy dokladnie ten sam blad, ktory kosztowal nas pol dnia
+    # przy aktualizacjach.
+    $lPole = $pole
+    $lLista = $lista
+    $lOkno = $okno
+    $lWszystko = $wszystko
+
+    $odswiez = {
+        $f = Bez-Ogonkow ("$($lPole.Text)".Trim())
+        $lLista.Items.Clear()
+
+        $pasuje = @()
+        if (-not $f) {
+            $pasuje = @($lWszystko | Select-Object -First 40)
+        } else {
+            # Trafienie w tytul wazy wiecej niz trafienie w opis - inaczej
+            # "sieć" wyrzucaloby najpierw dziesiec zadan, ktore o sieci
+            # tylko wspominaja, a dopiero potem zakladke Sieć.
+            $slowa = @($f -split '\s+' | Where-Object { $_ })
+            $ocena = New-Object System.Collections.ArrayList
+            foreach ($poz in $lWszystko) {
+                $pkt = 0
+                $ok = $true
+                $tytulProsty = Bez-Ogonkow $poz.Tytul
+                foreach ($sl in $slowa) {
+                    if ($tytulProsty.Contains($sl))    { $pkt += 10 }
+                    elseif ($poz.Szukane.Contains($sl)) { $pkt += 3  }
+                    else { $ok = $false; break }
+                }
+                if ($ok) {
+                    if ($tytulProsty.StartsWith($f)) { $pkt += 8 }
+                    [void]$ocena.Add([pscustomobject]@{ P = $poz; Pkt = $pkt })
+                }
+            }
+            $pasuje = @($ocena | Sort-Object Pkt -Descending | Select-Object -First 40 | ForEach-Object { $_.P })
+        }
+
+        foreach ($poz in $pasuje) {
+            $wiersz = New-Object Windows.Controls.StackPanel
+            $wiersz.Margin = New-Object Windows.Thickness 0,1,0,2
+
+            $gora = New-Object Windows.Controls.StackPanel
+            $gora.Orientation = 'Horizontal'
+
+            $znacznik = New-Object Windows.Controls.Border
+            $znacznik.CornerRadius = New-Object Windows.CornerRadius 6
+            $znacznik.Padding = New-Object Windows.Thickness 7,1,8,2
+            $znacznik.Margin = New-Object Windows.Thickness 0,0,9,0
+            $znacznik.VerticalAlignment = 'Center'
+            $znacznik.Background = $(switch ($poz.Kat) {
+                'Zakładka'  { Br '#141E2E' }
+                'Narzędzie' { Br '#16233A' }
+                'Program'   { Br '#0F2E24' }
+                default     { Br '#1A2436' }
+            })
+            $kt = New-Object Windows.Controls.TextBlock
+            $kt.Text = $poz.Kat
+            $kt.FontSize = 10.5
+            $kt.Foreground = $(switch ($poz.Kat) {
+                'Zakładka'  { Br '#9FB3C8' }
+                'Narzędzie' { Br '#818CF8' }
+                'Program'   { Br '#34D399' }
+                default     { Br '#22D3EE' }
+            })
+            $znacznik.Child = $kt
+            $gora.Children.Add($znacznik) | Out-Null
+
+            $tt = New-Object Windows.Controls.TextBlock
+            $tt.Text = $poz.Tytul
+            $tt.FontSize = 14
+            $tt.Foreground = Br '#EAF2F8'
+            $tt.VerticalAlignment = 'Center'
+            $gora.Children.Add($tt) | Out-Null
+            $wiersz.Children.Add($gora) | Out-Null
+
+            if ($poz.Opis) {
+                $od = New-Object Windows.Controls.TextBlock
+                $krotki = "$($poz.Opis)"
+                if ($krotki.Length -gt 110) { $krotki = $krotki.Substring(0, 110) + '...' }
+                $od.Text = $krotki
+                $od.FontSize = 11.5
+                $od.Foreground = Br '#7E8DA1'
+                $od.TextTrimming = 'CharacterEllipsis'
+                $od.Margin = New-Object Windows.Thickness 0,2,0,0
+                $wiersz.Children.Add($od) | Out-Null
+            }
+
+            $el = New-Object Windows.Controls.ListBoxItem
+            $el.Content = $wiersz
+            $el.Padding = New-Object Windows.Thickness 8,6,8,7
+            $el.Tag = $poz
+            $lLista.Items.Add($el) | Out-Null
+        }
+
+        if ($lLista.Items.Count -gt 0) { $lLista.SelectedIndex = 0 }
+    }.GetNewClosure()
+
+    $uruchom = {
+        $el = $lLista.SelectedItem
+        if (-not $el) { return }
+        $poz = $el.Tag
+        $lOkno.Close()
+        Wykonaj-ZPalety $poz
+    }.GetNewClosure()
+
+    $pole.Add_TextChanged($odswiez)
+
+    $pole.Add_PreviewKeyDown({
+        param($s, $e)
+        switch ("$($e.Key)") {
+            'Down'   { if ($lLista.SelectedIndex -lt $lLista.Items.Count - 1) { $lLista.SelectedIndex++ }; $lLista.ScrollIntoView($lLista.SelectedItem); $e.Handled = $true }
+            'Up'     { if ($lLista.SelectedIndex -gt 0) { $lLista.SelectedIndex-- }; $lLista.ScrollIntoView($lLista.SelectedItem); $e.Handled = $true }
+            'Enter'  { & $uruchom; $e.Handled = $true }
+            'Escape' { $lOkno.Close(); $e.Handled = $true }
+        }
+    }.GetNewClosure())
+
+    $lista.Add_MouseDoubleClick({ & $uruchom }.GetNewClosure())
+
+    $okno.Add_ContentRendered({
+        & $odswiez
+        $lPole.Focus() | Out-Null
+    }.GetNewClosure())
+
+    $okno.ShowDialog() | Out-Null
+}
 
 function Show-Page {
     param($Page)
@@ -9131,7 +9487,7 @@ function New-SkinCard {
     if ($SkinUwagi.ContainsKey("$($M.Id)")) {
         $uw = New-Object Windows.Controls.TextBlock
         $uw.Text = $SkinUwagi["$($M.Id)"]
-        $uw.FontSize = 11
+        $uw.FontSize = 11.5
         $uw.TextWrapping = 'Wrap'
         $uw.LineHeight = 16
         $uw.Foreground = $Window.FindResource('Dim')
@@ -9380,7 +9736,7 @@ function New-GameCard {
     $pill.Margin  = New-Object Windows.Thickness 0,0,12,0
     $pill.VerticalAlignment = 'Center'
     $ptx = New-Object Windows.Controls.TextBlock
-    $ptx.FontSize = 11; $ptx.FontWeight = 'SemiBold'
+    $ptx.FontSize = 11.5; $ptx.FontWeight = 'SemiBold'
     if ($G.missing) {
         $fgHex = '#FB7185'
         $pill.Background = Br '#3A1220'; $ptx.Foreground = Br $fgHex; $ptx.Text = 'brak pliku'
@@ -9475,7 +9831,7 @@ function New-GameSection {
 
     $tb = New-Object Windows.Controls.TextBlock
     $tb.Text = $Tytul
-    $tb.FontSize = 11
+    $tb.FontSize = 11.5
     $tb.FontWeight = 'SemiBold'
     $tb.Foreground = Br $Kolor
     $tb.VerticalAlignment = 'Center'
@@ -9493,7 +9849,7 @@ function New-GameSection {
 
     $cnt = New-Object Windows.Controls.TextBlock
     $cnt.Text = "$Ile"
-    $cnt.FontSize = 11
+    $cnt.FontSize = 11.5
     $cnt.Foreground = $Window.FindResource('Dim')
     $cnt.VerticalAlignment = 'Center'
     $cnt.Margin = New-Object Windows.Thickness 12,0,0,0
@@ -9716,7 +10072,7 @@ function New-StartupCard {
     # z dlugiego polecenia z przelacznikami wyciagamy sam plik wykonywalny,
     # calosc zostaje w podpowiedzi
     $cmd = New-Object Windows.Controls.TextBlock
-    $cmd.FontSize = 11
+    $cmd.FontSize = 11.5
     $cmd.Foreground = $Window.FindResource('Dim')
     $cmd.TextTrimming = 'CharacterEllipsis'
     $cmd.Margin = New-Object Windows.Thickness 0,4,0,0
@@ -9871,7 +10227,7 @@ function New-ProcCard {
     if ($It.tytul)     { $opis += "   •   $($It.tytul)" }
     if ($It.chroniony) { $opis += '   •   proces systemowy' }
     $meta.Text = $opis
-    $meta.FontSize = 11
+    $meta.FontSize = 11.5
     $meta.TextTrimming = 'CharacterEllipsis'
     $meta.Foreground = $Window.FindResource('Dim')
     $meta.Margin = New-Object Windows.Thickness 0,4,16,0
@@ -9890,7 +10246,7 @@ function New-ProcCard {
     $pill.Margin  = New-Object Windows.Thickness 0,0,12,0
     $pill.VerticalAlignment = 'Center'
     $ptx = New-Object Windows.Controls.TextBlock
-    $ptx.FontSize = 11; $ptx.FontWeight = 'SemiBold'
+    $ptx.FontSize = 11.5; $ptx.FontWeight = 'SemiBold'
     $ptx.Text = "{0:N0} MB" -f $It.ramMB
     if ($It.ramMB -ge 1000)     { $fgHex = '#FB7185'; $pill.Background = Br '#3A1220'; $ptx.Foreground = Br $fgHex }
     elseif ($It.ramMB -ge 300)  { $fgHex = '#FBBF24'; $pill.Background = Br '#33280A'; $ptx.Foreground = Br $fgHex }
@@ -9984,13 +10340,13 @@ function New-LinkRow {
 
     $lb = New-Object Windows.Controls.TextBlock
     $lb.Text = "$($R.label)"
-    $lb.FontSize = 12; $lb.FontWeight = 'SemiBold'
+    $lb.FontSize = 12.5; $lb.FontWeight = 'SemiBold'
     $lb.Foreground = $Window.FindResource('Muted')
     $sp.Children.Add($lb) | Out-Null
 
     $vl = New-Object Windows.Controls.TextBlock
     $vl.Text = "$($R.value)"
-    $vl.FontSize = 13
+    $vl.FontSize = 12.5
     $vl.TextWrapping = 'Wrap'
     $vl.Margin = New-Object Windows.Thickness 0,3,10,0
     if ("$($R.stan)") { $vl.Foreground = Br $kolor } else { $vl.Foreground = $Window.FindResource('Txt') }
@@ -10045,7 +10401,7 @@ function New-NetPropCard {
     $pill.Margin  = New-Object Windows.Thickness 0,0,12,0
     $pill.VerticalAlignment = 'Center'
     $ptx = New-Object Windows.Controls.TextBlock
-    $ptx.FontSize = 11; $ptx.FontWeight = 'SemiBold'
+    $ptx.FontSize = 11.5; $ptx.FontWeight = 'SemiBold'
     if ($It.wylaczone) {
         $fgHex = '#34D399'
         $pill.Background = Br '#0F2E24'; $ptx.Foreground = Br $fgHex; $ptx.Text = 'wyłączone'
@@ -10214,6 +10570,9 @@ $UI.BtnGameAdd.Add_Click({
     }
 })
 $UI.BtnGameDetect.Add_Click({ Start-Worker 'games_detect' })
+# Ten sam przycisk w pustym stanie - zeby z pustej zakladki bylo dokad
+# pojsc, zamiast odsylac wzrokiem do paska na gorze.
+if ($UI.BtnGameDetectEmpty) { $UI.BtnGameDetectEmpty.Add_Click({ Start-Worker 'games_detect' }) }
 $UI.BtnGameAll.Add_Click({
     $r = [System.Windows.MessageBox]::Show(
         "Ustawić maksymalną wydajność dla wszystkich gier na liście?",
@@ -10293,7 +10652,9 @@ $Window.Add_PreviewKeyDown({
             $UI.SearchBox.SelectAll()
             $e.Handled = $true
         }
-        'K' { $UI.BtnConsole.RaiseEvent((New-Object Windows.RoutedEventArgs ([Windows.Controls.Button]::ClickEvent))); $e.Handled = $true }
+        'K' { Pokaz-Palete; $e.Handled = $true }
+        'P' { Pokaz-Palete; $e.Handled = $true }
+        'J' { $UI.BtnConsole.RaiseEvent((New-Object Windows.RoutedEventArgs ([Windows.Controls.Button]::ClickEvent))); $e.Handled = $true }
         'R' { if (-not $sync.Busy) { Start-Worker 'scan' }; $e.Handled = $true }
         default {
             # Ctrl + 1..9 przeskakuje po zakladkach w kolejnosci z menu
@@ -10358,7 +10719,7 @@ function Nowy-PrzyciskAkt {
     $b.Padding    = New-Object Windows.Thickness 16,8,16,8
     $b.Margin     = New-Object Windows.Thickness 0,0,8,0
     $b.Cursor     = 'Hand'
-    $b.FontSize   = 13
+    $b.FontSize   = 12.5
     if ($Glowny) { $b.FontWeight = 'SemiBold' }
     return $b
 }
@@ -10625,7 +10986,7 @@ function Pokaz-CzasStartu {
         $nz = New-Object Windows.Controls.TextBlock
         $nz.Text = $poz.Nazwa
         $nz.Foreground = Br '#C7D6E6'
-        $nz.FontSize = 12
+        $nz.FontSize = 12.5
         $nz.TextTrimming = 'CharacterEllipsis'
         $lewo.Children.Add($nz) | Out-Null
 
@@ -10655,7 +11016,7 @@ function Pokaz-CzasStartu {
         $ms = New-Object Windows.Controls.TextBlock
         $ms.Text = Fmt-Sek $poz.Ms
         $ms.Foreground = $(if ($poz.Ms -ge 3000) { Br '#FB7185' } elseif ($poz.Ms -ge 1000) { Br '#FBBF24' } else { Br '#9FB3C8' })
-        $ms.FontSize = 12
+        $ms.FontSize = 12.5
         $ms.FontWeight = 'SemiBold'
         $ms.VerticalAlignment = 'Top'
         [Windows.Controls.Grid]::SetColumn($ms, 1)
@@ -10667,7 +11028,7 @@ function Pokaz-CzasStartu {
     $stopka = New-Object Windows.Controls.TextBlock
     $stopka.Text = 'Średnia z ostatnich rozruchów. Te same wartości widać przy wpisach w Autostarcie.'
     $stopka.Foreground = Br '#7E8DA1'
-    $stopka.FontSize = 11
+    $stopka.FontSize = 11.5
     $stopka.TextWrapping = 'Wrap'
     $stopka.Margin = New-Object Windows.Thickness 0,4,0,0
     $UI.BootHost.Children.Add($stopka) | Out-Null
@@ -10906,14 +11267,14 @@ function Pokaz-BlokadyWinget {
     $tytul = New-Object Windows.Controls.TextBlock
     $tytul.Text = 'Blokady aktualizacji'
     $tytul.Foreground = (Br '#EAF2F8')
-    $tytul.FontSize = 19
+    $tytul.FontSize = 18
     $tytul.FontWeight = 'SemiBold'
     $glowa.Children.Add($tytul) | Out-Null
 
     $pod = New-Object Windows.Controls.TextBlock
     $pod.Text = 'Zaznaczone programy zostaną pominięte przez "Aktualizuj programy (winget)". Nie blokuje to ich własnych aktualizatorów ani ręcznej instalacji.'
     $pod.Foreground = (Br '#9FB3C8')
-    $pod.FontSize = 12
+    $pod.FontSize = 12.5
     $pod.TextWrapping = 'Wrap'
     $pod.Margin = New-Object Windows.Thickness 0,4,0,12
     $glowa.Children.Add($pod) | Out-Null
@@ -10955,7 +11316,7 @@ function Pokaz-BlokadyWinget {
 
     $stan = New-Object Windows.Controls.TextBlock
     $stan.Foreground = (Br '#9FB3C8')
-    $stan.FontSize = 12
+    $stan.FontSize = 12.5
     $stan.TextWrapping = 'Wrap'
     $stan.VerticalAlignment = 'Center'
     [Windows.Controls.Grid]::SetColumn($stan, 0)
@@ -11124,14 +11485,14 @@ function Pokaz-CoNowego {
     $tytul = New-Object Windows.Controls.TextBlock
     $tytul.Text = "Zaktualizowano do $AppWersja"
     $tytul.Foreground = (Br '#EAF2F8')
-    $tytul.FontSize = 19
+    $tytul.FontSize = 18
     $tytul.FontWeight = 'SemiBold'
     $stos.Children.Add($tytul) | Out-Null
 
     $pod = New-Object Windows.Controls.TextBlock
     $pod.Text = 'Poprzednia wersja została zachowana obok, jako plik .bak'
     $pod.Foreground = (Br '#9FB3C8')
-    $pod.FontSize = 12
+    $pod.FontSize = 12.5
     $pod.TextWrapping = 'Wrap'
     $pod.Margin = New-Object Windows.Thickness 0,2,0,14
     $stos.Children.Add($pod) | Out-Null
@@ -11141,7 +11502,7 @@ function Pokaz-CoNowego {
             $w = New-Object Windows.Controls.TextBlock
             $w.Text = "•  $z"
             $w.Foreground = (Br '#C7D6E6')
-            $w.FontSize = 13
+            $w.FontSize = 12.5
             $w.TextWrapping = 'Wrap'
             $w.Margin = New-Object Windows.Thickness 0,0,0,5
             $stos.Children.Add($w) | Out-Null
@@ -11201,14 +11562,14 @@ function Pokaz-Aktualizacje {
     $tytul = New-Object Windows.Controls.TextBlock
     $tytul.Text = "Dostępna wersja $($Info.Wersja)"
     $tytul.Foreground = (Br '#EAF2F8')
-    $tytul.FontSize = 19
+    $tytul.FontSize = 18
     $tytul.FontWeight = 'SemiBold'
     $stos.Children.Add($tytul) | Out-Null
 
     $pod = New-Object Windows.Controls.TextBlock
     $pod.Text = "Masz $AppWersja"
     $pod.Foreground = (Br '#9FB3C8')
-    $pod.FontSize = 12
+    $pod.FontSize = 12.5
     $pod.Margin = New-Object Windows.Thickness 0,2,0,14
     $stos.Children.Add($pod) | Out-Null
 
@@ -11217,7 +11578,7 @@ function Pokaz-Aktualizacje {
             $w = New-Object Windows.Controls.TextBlock
             $w.Text = "•  $z"
             $w.Foreground = (Br '#C7D6E6')
-            $w.FontSize = 13
+            $w.FontSize = 12.5
             $w.TextWrapping = 'Wrap'
             $w.Margin = New-Object Windows.Thickness 0,0,0,5
             $stos.Children.Add($w) | Out-Null
@@ -11228,7 +11589,7 @@ function Pokaz-Aktualizacje {
         $u = New-Object Windows.Controls.TextBlock
         $u.Text = 'Ta wersja wymaga pełnej instalacji - pobierz instalator ze strony programu.'
         $u.Foreground = (Br '#FBBF24')
-        $u.FontSize = 12
+        $u.FontSize = 12.5
         $u.TextWrapping = 'Wrap'
         $u.Margin = New-Object Windows.Thickness 0,8,0,0
         $stos.Children.Add($u) | Out-Null
@@ -11236,7 +11597,7 @@ function Pokaz-Aktualizacje {
 
     $stan = New-Object Windows.Controls.TextBlock
     $stan.Foreground = (Br '#9FB3C8')
-    $stan.FontSize = 12
+    $stan.FontSize = 12.5
     $stan.TextWrapping = 'Wrap'
     $stan.Margin = New-Object Windows.Thickness 0,14,0,0
     $stan.Visibility = 'Collapsed'
