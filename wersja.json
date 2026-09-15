@@ -2,20 +2,20 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "8.0.0",
+    "wersja": "8.1.0",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "41926EB0C28857EAB23E1BB5AFB34BF844DB51FE3BB95593A9C6BFEEED3F6D56",
-      "rozmiar": 507365
+      "sha256": "2C620FD6178F2F6956B836AED08156E1A740F86F2FBA7790D246E38BB9E06B44",
+      "rozmiar": 519179
     },
     "zmiany": [
-      "Osobny pasek nad trescia informuje o dostepnej aktualizacji - widoczny na kazdej zakladce",
-      "Przycisk w pasku tytulu nazywa sie po prostu \"Aktualizacje\" i juz nie zmienia napisu",
-      "Lewe menu miesci sie bez przewijania - nizsze pozycje i ciasniejsze odstepy",
-      "Konsola wezsza o 52 px, srodkowa kolumna zyskuje tyle samo",
-      "Nizszy wykres obciazenia na Pulpicie"
+      "Nowa karta \"Czas uruchamiania\" na Pulpicie - ile trwal ostatni rozruch, wg pomiaru Windows",
+      "Lista programow, ktore najbardziej opozniaja start, z paskami i sekundami",
+      "W Autostarcie przy wpisach widac zmierzone opoznienie, np. \"3,2 s do startu systemu\"",
+      "Osobny pasek nad trescia informuje o dostepnej aktualizacji",
+      "Lewe menu miesci sie bez przewijania, konsola wezsza o 52 px"
     ]
   },
   "lacze": {

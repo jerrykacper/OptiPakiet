@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.0.0'
+$AppWersja  = '8.1.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2183,7 +2183,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.0'
+$AppVersion = '8.1'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -3956,6 +3956,24 @@ $XamlText = @'
                   </StackPanel>
                 </Border>
 
+                <!-- CZAS URUCHAMIANIA -->
+                <!-- Dane z dziennika Diagnostics-Performance: Windows sam
+                     mierzy kazdy rozruch i zapisuje, ktora aplikacja go
+                     opoznila. Nikt tego uzytkownikowi nie pokazuje. -->
+                <Border Style="{StaticResource PlainCard}" Margin="0,0,0,12">
+                  <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,9">
+                      <Border Width="10" Height="2" CornerRadius="1" Background="{StaticResource AccentGrad}"
+                              VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
+                      <TextBlock Text="CZAS URUCHAMIANIA" Style="{StaticResource Label}"/>
+                    </StackPanel>
+                    <TextBlock x:Name="BootTime" Text="—" Foreground="{StaticResource Txt}" FontSize="19" FontWeight="Bold"/>
+                    <TextBlock x:Name="BootHint" Text="Odczytuję pomiary Windows..." Foreground="{StaticResource Muted}"
+                               FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                    <StackPanel x:Name="BootHost" Margin="0,11,0,0"/>
+                  </StackPanel>
+                </Border>
+
                 <StackPanel Orientation="Horizontal" Margin="2,4,0,8">
                   <Border Width="10" Height="2" CornerRadius="1" Background="{StaticResource AccentGrad}"
                           VerticalAlignment="Center" Margin="0,0,7,0" Opacity="0.85"/>
@@ -4363,6 +4381,7 @@ foreach ($n in @('TitleBar','BtnMin','BtnClose','VerLabel','LogoMark','LogoRing'
                  'GameInfo','BtnGameFilter','BtnGameClean',
                  'AktPill','AktPillIcon','AktPillText',
                  'AktBanner','AktBannerTytul','AktBannerOpis','AktBannerPokaz','AktBannerUkryj',
+                 'BootTime','BootHint','BootHost',
                  'NavStartup','PanelStartup','StartupHost','StartupEmpty','StartupInfo','BtnStartupRefresh',
                  'NavProc','PanelProc','ProcHost','ProcInfo','BtnProcRefresh',
                  'NavLink','PanelLink','LinkHost','LinkPropHost','LinkInfo','BtnLinkScan',
@@ -9428,6 +9447,37 @@ function New-StartupCard {
     $opisBox = Nowy-OpisZBazy "$($It.name)" "$($It.cmd)"
     if ($opisBox) { $sp.Children.Add($opisBox) | Out-Null }
 
+    # Zmierzone opoznienie startu - nie nasz szacunek, tylko liczba
+    # z dziennika Windows. To ona zamienia te zakladke z listy do
+    # odhaczania w liste uszeregowana wedlug tego, co realnie boli.
+    $kluczOp = Klucz-Nazwy "$($It.name)"
+    $kluczOp2 = Klucz-Polecenia "$($It.cmd)"
+    $msOp = 0
+    foreach ($k in @($kluczOp, $kluczOp2)) {
+        if ($k -and $script:OpoznieniaStartu.ContainsKey($k)) {
+            if ($script:OpoznieniaStartu[$k] -gt $msOp) { $msOp = $script:OpoznieniaStartu[$k] }
+        }
+    }
+    if ($msOp -gt 0) {
+        $op = New-Object Windows.Controls.TextBlock
+        $op.FontSize = 11.5
+        $op.Margin = '0,7,16,0'
+        $op.TextWrapping = 'Wrap'
+
+        $opL = New-Object Windows.Documents.Run
+        $opL.Text = ((Fmt-Sek $msOp) + ' do startu systemu  ')
+        $opL.Foreground = $(if ($msOp -ge 3000) { Br '#FB7185' } elseif ($msOp -ge 1000) { Br '#FBBF24' } else { Br '#34D399' })
+        $opL.FontWeight = 'SemiBold'
+        $op.Inlines.Add($opL)
+
+        $opT = New-Object Windows.Documents.Run
+        $opT.Text = 'zmierzone przez Windows, średnia z ostatnich rozruchów'
+        $opT.Foreground = $Window.FindResource('Dim')
+        $op.Inlines.Add($opT)
+
+        $sp.Children.Add($op) | Out-Null
+    }
+
     [Windows.Controls.Grid]::SetColumn($sp, 1)
     $grid.Children.Add($sp) | Out-Null
 
@@ -10034,6 +10084,229 @@ function Nowy-PrzyciskAkt {
 # =====================================================================
 
 $script:AktZnaleziona = $null
+
+# =====================================================================
+#  CZAS URUCHAMIANIA
+#
+#  Windows od wersji 7 mierzy kazdy rozruch i zapisuje wynik do dziennika
+#  Microsoft-Windows-Diagnostics-Performance/Operational:
+#    100 - ile trwal rozruch (BootTime, MainPathBootTime)
+#    101 - ktora APLIKACJA go opoznila i o ile
+#    103 - ktora USLUGA go opoznila i o ile
+#
+#  To sa pomiary systemu, nie nasze szacunki. Dzieki nim zakladka
+#  Autostart przestaje byc lista do zgadywania: przy wpisie widac, ile
+#  sekund realnie dokladal do startu.
+# =====================================================================
+
+$script:OpoznieniaStartu = @{}
+
+function Zbadaj-CzasStartu {
+    param($Okno, [scriptblock]$Gotowe)
+
+    $wspolne = [hashtable]::Synchronized(@{ Gotowe = $false; Wynik = $null })
+
+    try {
+        $rs = [runspacefactory]::CreateRunspace()
+        $rs.ApartmentState = 'STA'
+        $rs.ThreadOptions  = 'ReuseThread'
+        $rs.Open()
+        $rs.SessionStateProxy.SetVariable('S', $wspolne)
+
+        $ps = [powershell]::Create()
+        $ps.Runspace = $rs
+        $null = $ps.AddScript({
+            $wynik = @{ Ok = $false; Blad = ''; Boot = 0; Main = 0; Ile = 0; Winni = @() }
+            $log = 'Microsoft-Windows-Diagnostics-Performance/Operational'
+            try {
+                # Ostatni rozruch - sam czas.
+                $e100 = @(Get-WinEvent -FilterHashtable @{ LogName = $log; Id = 100 } `
+                                       -MaxEvents 1 -ErrorAction Stop)
+                if ($e100.Count -gt 0) {
+                    $x = [xml]$e100[0].ToXml()
+                    $d = @{}
+                    foreach ($pd in $x.Event.EventData.Data) { $d[$pd.Name] = "$($pd.'#text')" }
+                    if ($d['BootTime'])         { $wynik.Boot = [int]$d['BootTime'] }
+                    if ($d['MainPathBootTime']) { $wynik.Main = [int]$d['MainPathBootTime'] }
+                    $wynik.Ok = $true
+                }
+
+                # Winowajcy z ostatnich kilkunastu rozruchow. Pojedynczy
+                # pomiar potrafi klamac (akurat trwala aktualizacja), wiec
+                # bierzemy srednia z tego, co system zdazyl zapisac.
+                $sumy = @{}
+                $ile  = @{}
+                foreach ($id in @(101, 103)) {
+                    $ev = @()
+                    try {
+                        $ev = @(Get-WinEvent -FilterHashtable @{ LogName = $log; Id = $id } `
+                                             -MaxEvents 60 -ErrorAction Stop)
+                    } catch { }
+                    foreach ($e in $ev) {
+                        try {
+                            $x = [xml]$e.ToXml()
+                            $d = @{}
+                            foreach ($pd in $x.Event.EventData.Data) { $d[$pd.Name] = "$($pd.'#text')" }
+                            $nazwa = "$($d['Name'])"
+                            $ms    = 0
+                            if ($d['TotalTime']) { $ms = [int]$d['TotalTime'] }
+                            if ($ms -le 0 -or -not $nazwa) { continue }
+                            if (-not $sumy.ContainsKey($nazwa)) { $sumy[$nazwa] = 0; $ile[$nazwa] = 0 }
+                            $sumy[$nazwa] = $sumy[$nazwa] + $ms
+                            $ile[$nazwa]  = $ile[$nazwa] + 1
+                        } catch { }
+                    }
+                }
+
+                $lista = New-Object System.Collections.ArrayList
+                foreach ($k in $sumy.Keys) {
+                    $sr = [int]($sumy[$k] / [Math]::Max(1, $ile[$k]))
+                    if ($sr -lt 300) { continue }   # ponizej 0,3 s to szum
+                    [void]$lista.Add([pscustomobject]@{ Nazwa = $k; Ms = $sr; Razy = $ile[$k] })
+                }
+                $wynik.Winni = @($lista | Sort-Object Ms -Descending | Select-Object -First 6)
+                $wynik.Ile   = @($lista).Count
+            } catch {
+                $wynik.Blad = "$($_.Exception.Message)"
+            }
+            $S.Wynik = $wynik
+            $S.Gotowe = $true
+        })
+        $uchwyt = $ps.BeginInvoke()
+    } catch { return }
+
+    $zegar = New-Object System.Windows.Threading.DispatcherTimer
+    $zegar.Interval = [TimeSpan]::FromMilliseconds(300)
+    $zegar.Add_Tick({
+        if (-not $wspolne.Gotowe) { return }
+        $zegar.Stop()
+        try { $null = $ps.EndInvoke($uchwyt) } catch { }
+        try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
+        try { & $Gotowe $wspolne.Wynik } catch { }
+    }.GetNewClosure())
+    $zegar.Start()
+}
+
+function Fmt-Sek {
+    param([int]$Ms)
+    if ($Ms -ge 1000) { return ('{0:N1} s' -f ($Ms / 1000)) }
+    return ("$Ms ms")
+}
+
+function Pokaz-CzasStartu {
+    param($W)
+
+    if (-not $UI.BootTime) { return }
+    $UI.BootHost.Children.Clear()
+
+    if (-not $W -or -not $W.Ok) {
+        $UI.BootTime.Text = 'brak danych'
+        $UI.BootHint.Text = 'Windows nie zapisał jeszcze pomiaru rozruchu. Zwykle pojawia się po kilku uruchomieniach komputera.'
+        return
+    }
+
+    $UI.BootTime.Text = Fmt-Sek $W.Boot
+
+    $opis = 'Tyle trwał ostatni rozruch według pomiaru Windows.'
+    if ($W.Main -gt 0 -and $W.Main -lt $W.Boot) {
+        $opis = "Tyle trwał ostatni rozruch według pomiaru Windows. Do pulpitu: $(Fmt-Sek $W.Main), reszta to programy dogrywające się w tle."
+    }
+    $UI.BootHint.Text = $opis
+
+    if (@($W.Winni).Count -eq 0) {
+        $t = New-Object Windows.Controls.TextBlock
+        $t.Text = 'Żaden program nie opóźnia startu na tyle, żeby system to odnotował.'
+        $t.Foreground = Br '#34D399'
+        $t.FontSize = 11.5
+        $t.TextWrapping = 'Wrap'
+        $UI.BootHost.Children.Add($t) | Out-Null
+        return
+    }
+
+    $naglowek = New-Object Windows.Controls.TextBlock
+    $naglowek.Text = 'Co najbardziej opóźnia start, według Windows:'
+    $naglowek.Foreground = Br '#9FB3C8'
+    $naglowek.FontSize = 11.5
+    $naglowek.Margin = New-Object Windows.Thickness 0,0,0,8
+    $UI.BootHost.Children.Add($naglowek) | Out-Null
+
+    $max = 1
+    foreach ($w in $W.Winni) { if ($w.Ms -gt $max) { $max = $w.Ms } }
+
+    foreach ($w in $W.Winni) {
+        $rzad = New-Object Windows.Controls.Grid
+        $rzad.Margin = New-Object Windows.Thickness 0,0,0,6
+        foreach ($sz in @((New-Object Windows.GridLength(1, [Windows.GridUnitType]::Star)),
+                          [Windows.GridLength]::Auto)) {
+            $cd = New-Object Windows.Controls.ColumnDefinition
+            $cd.Width = $sz
+            $rzad.ColumnDefinitions.Add($cd)
+        }
+
+        $lewo = New-Object Windows.Controls.StackPanel
+        [Windows.Controls.Grid]::SetColumn($lewo, 0)
+        $rzad.Children.Add($lewo) | Out-Null
+
+        $nz = New-Object Windows.Controls.TextBlock
+        $nz.Text = $w.Nazwa
+        $nz.Foreground = Br '#C7D6E6'
+        $nz.FontSize = 12
+        $nz.TextTrimming = 'CharacterEllipsis'
+        $lewo.Children.Add($nz) | Out-Null
+
+        # Pasek proporcjonalny do najwiekszego opoznienia - pokazuje
+        # relacje szybciej niz same liczby.
+        $tlo = New-Object Windows.Controls.Border
+        $tlo.Height = 4
+        $tlo.CornerRadius = New-Object Windows.CornerRadius 2
+        $tlo.Background = Br '#16202F'
+        $tlo.Margin = New-Object Windows.Thickness 0,5,14,0
+        $tlo.HorizontalAlignment = 'Stretch'
+        $lewo.Children.Add($tlo) | Out-Null
+
+        $wyp = New-Object Windows.Controls.Border
+        $wyp.Height = 4
+        $wyp.CornerRadius = New-Object Windows.CornerRadius 2
+        $wyp.HorizontalAlignment = 'Left'
+        $wyp.Background = $(if ($w.Ms -ge 3000) { Br '#FB7185' } elseif ($w.Ms -ge 1000) { Br '#FBBF24' } else { Br '#34D399' })
+        $wyp.Width = 1
+        $tlo.Child = $wyp
+        $tlo.Add_SizeChanged({
+            param($s, $e)
+            $szer = [double]$e.NewSize.Width
+            if ($szer -gt 0) { $s.Child.Width = [Math]::Max(2, $szer * ($w.Ms / $max)) }
+        }.GetNewClosure())
+
+        $ms = New-Object Windows.Controls.TextBlock
+        $ms.Text = Fmt-Sek $w.Ms
+        $ms.Foreground = $(if ($w.Ms -ge 3000) { Br '#FB7185' } elseif ($w.Ms -ge 1000) { Br '#FBBF24' } else { Br '#9FB3C8' })
+        $ms.FontSize = 12
+        $ms.FontWeight = 'SemiBold'
+        $ms.VerticalAlignment = 'Top'
+        [Windows.Controls.Grid]::SetColumn($ms, 1)
+        $rzad.Children.Add($ms) | Out-Null
+
+        $UI.BootHost.Children.Add($rzad) | Out-Null
+    }
+
+    $stopka = New-Object Windows.Controls.TextBlock
+    $stopka.Text = 'Średnia z ostatnich rozruchów. Te same wartości widać przy wpisach w Autostarcie.'
+    $stopka.Foreground = Br '#7E8DA1'
+    $stopka.FontSize = 11
+    $stopka.TextWrapping = 'Wrap'
+    $stopka.Margin = New-Object Windows.Thickness 0,4,0,0
+    $UI.BootHost.Children.Add($stopka) | Out-Null
+
+    # Slownik dla zakladki Autostart - klucze znormalizowane tak samo
+    # jak w bazie opisow, zeby "Steam.exe" trafilo w "steam".
+    $script:OpoznieniaStartu = @{}
+    foreach ($w in $W.Winni) {
+        $k = Klucz-Nazwy $w.Nazwa
+        if ($k) { $script:OpoznieniaStartu[$k] = $w.Ms }
+    }
+    try { if ($sync.Startup) { Render-Startup } } catch { }
+}
+
 
 # Pasek nad trescia. Zostaje widoczny az do zainstalowania albo
 # pominiecia wersji - w odroznieniu od okna, ktore pokazuje sie raz.
@@ -10773,6 +11046,10 @@ $Window.Add_ContentRendered({
     # Pigulka jest widoczna od startu, nawet gdy sprawdzenie nie idzie
     # (limit raz na dobe) - kliknieciem wymusza je natychmiast.
     if (Akt-Skonfigurowane) { Ustaw-PigulkeAkt 'neutral' }
+
+    # Odczyt dziennika wydajnosci - w tle, bo przy duzym logu potrafi
+    # zajac kilka sekund.
+    Zbadaj-CzasStartu $Window { param($w) Pokaz-CzasStartu $w }
 
     Sprawdz-AktualizacjeWTle $Window { param($w) Odbierz-WynikAkt $w }
 })

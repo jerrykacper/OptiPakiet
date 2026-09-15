@@ -5,7 +5,7 @@ Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle
 
 ---
 
-## OptiLauncher 8.0
+## OptiLauncher 8.1
 
 Optymalizacja i diagnostyka komputera.
 
@@ -30,7 +30,7 @@ Każda zmiana trafia do `backup.json` i da się ją cofnąć jednym przyciskiem.
 |---|---|
 | Pulpit | liczniki procesora, pamięci i dysku na żywo |
 | Moje gry | wykrywanie gier ze Steam i Epic, ustawienia wydajności per gra |
-| Autostart | co startuje z Windows, z opisem każdej pozycji |
+| Autostart | co startuje z Windows, z opisem i zmierzonym opóźnieniem startu |
 | Procesy w tle | co zajmuje pamięć teraz, z opisem każdego procesu |
 | Łącze | pomiar sieci i ustawienia sterownika karty |
 | Diagnostyka | skan systemu, raport HTML, pomiar przed i po |
@@ -99,6 +99,17 @@ Zanim cokolwiek zostanie podmienione, pobrany plik przechodzi dwa
 sprawdzenia: suma kontrolna SHA256 musi zgadzać się z manifestem,
 a składnia skryptu musi dać się sparsować. Poprzednia wersja zostaje obok
 jako `.bak` — jeśli nowa nie wstanie w ciągu kilku sekund, wraca stara.
+
+### Czas uruchamiania
+
+Windows mierzy każdy rozruch i zapisuje, która aplikacja go opóźniła —
+dane leżą w dzienniku `Diagnostics-Performance` i normalnie nikt ich
+użytkownikowi nie pokazuje.
+
+Pulpit pokazuje czas ostatniego rozruchu, czas do pulpitu i listę
+programów uszeregowaną według tego, ile sekund realnie dokładają.
+Te same wartości pojawiają się przy wpisach w Autostarcie, więc decyzja
+o wyłączeniu opiera się na pomiarze systemu, a nie na domysłach.
 
 ### Blokady aktualizacji
 
