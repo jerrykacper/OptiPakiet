@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.0'
+$AppWersja  = '7.9.1'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -901,13 +901,18 @@ function Akt-Skonfigurowane {
 #  USTAWIENIA
 # ---------------------------------------------------------------------
 function Load-UstAkt {
-    $u = @{ auto = $true; pomin = ''; ostatnie = '' }
+    # poWersja / poZmiany: slad po wlasnie zainstalowanej aktualizacji.
+    # Zapisujemy je tuz przed podmiana pliku, bo lista zmian przychodzi
+    # z manifestu i po restarcie program juz jej nie ma skad wziac.
+    $u = @{ auto = $true; pomin = ''; ostatnie = ''; poWersja = ''; poZmiany = @() }
     try {
         if (Test-Path $AktFile) {
             $j = Get-Content $AktFile -Raw -Encoding UTF8 | ConvertFrom-Json
             if ($null -ne $j.auto) { $u.auto = [bool]$j.auto }
             if ($j.pomin)          { $u.pomin = "$($j.pomin)" }
             if ($j.ostatnie)       { $u.ostatnie = "$($j.ostatnie)" }
+            if ($j.poWersja)       { $u.poWersja = "$($j.poWersja)" }
+            if ($j.poZmiany)       { $u.poZmiany = @($j.poZmiany) }
         }
     } catch { }
     return $u
@@ -916,7 +921,13 @@ function Load-UstAkt {
 function Save-UstAkt {
     param($U)
     try {
-        @{ auto = [bool]$U.auto; pomin = "$($U.pomin)"; ostatnie = "$($U.ostatnie)" } |
+        $poz = @()
+        if ($U.poZmiany) { $poz = @($U.poZmiany) }
+        @{ auto     = [bool]$U.auto
+           pomin    = "$($U.pomin)"
+           ostatnie = "$($U.ostatnie)"
+           poWersja = "$($U.poWersja)"
+           poZmiany = $poz } |
             ConvertTo-Json | Set-Content $AktFile -Encoding UTF8
     } catch { }
 }
@@ -1244,6 +1255,8 @@ function Start-AktualizacjaPs1 {
         return @{ Ok = $false; Blad = 'Pobrany plik ma blad skladni - aktualizacja przerwana.' }
     }
 
+    Zapamietaj-Aktualizacje $Info
+
     $kopia = "$mojaSciezka.bak"
     $swap  = Join-Path $env:TEMP ("OptiPodmiana_{0}.ps1" -f [guid]::NewGuid().ToString('N'))
     Set-Content -LiteralPath $swap -Value $SzablonPodmiany -Encoding UTF8
@@ -1283,6 +1296,8 @@ function Start-AktualizacjaInno {
     $p = Pobierz-Plik $Info.SetupUrl $tmp $Info.SetupSha
     if (-not $p.Ok) { return $p }
 
+    Zapamietaj-Aktualizacje $Info
+
     if ($Postep) { & $Postep 'Uruchamiam instalator...' }
     try {
         Start-Process -FilePath $tmp `
@@ -1298,6 +1313,19 @@ function Start-AktualizacjaInno {
 # ---------------------------------------------------------------------
 #  WEJSCIE GLOWNE
 # ---------------------------------------------------------------------
+# Zapisujemy numer i liste zmian, zeby nowa wersja miala co pokazac
+# przy pierwszym uruchomieniu. Bez tego uzytkownik widzi tylko to, ze
+# program sie zrestartowal.
+function Zapamietaj-Aktualizacje {
+    param($Info)
+    try {
+        $u = Load-UstAkt
+        $u.poWersja = "$($Info.Wersja)"
+        $u.poZmiany = @($Info.Zmiany)
+        Save-UstAkt $u
+    } catch { }
+}
+
 function Zainstaluj-Aktualizacje {
     param($Info, [scriptblock]$Postep)
 
@@ -1967,7 +1995,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9'
+$AppVersion = '7.9.1'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -9688,6 +9716,95 @@ function Nowy-PrzyciskAkt {
     return $b
 }
 
+# Po aktualizacji program dotad po prostu wstawal - bez slowa o tym,
+# co sie wlasciwie zmienilo. Ten ekran pokazuje sie raz, przy pierwszym
+# uruchomieniu nowej wersji, i sam sie kasuje.
+function Pokaz-CoNowego {
+    $u = Load-UstAkt
+    if (-not $u.poWersja) { return }
+    if ("$($u.poWersja)" -ne "$AppWersja") {
+        # Slad z innej wersji niz ta uruchomiona: aktualizacja sie nie
+        # udala albo ktos podmienil plik recznie. Kasujemy, zeby ekran
+        # nie wracal przy kazdym starcie.
+        $u.poWersja = ''; $u.poZmiany = @(); Save-UstAkt $u
+        return
+    }
+
+    $zmiany = @($u.poZmiany)
+    $u.poWersja = ''; $u.poZmiany = @(); Save-UstAkt $u
+
+    Add-Log "Zaktualizowano do wersji $AppWersja." 'ok'
+
+    $okno = New-Object Windows.Window
+    $okno.Title = 'Co nowego'
+    $okno.Width = 480
+    $okno.SizeToContent = 'Height'
+    $okno.WindowStyle = 'None'
+    $okno.AllowsTransparency = $true
+    $okno.Background = [Windows.Media.Brushes]::Transparent
+    $okno.ResizeMode = 'NoResize'
+    $okno.ShowInTaskbar = $false
+    try { $okno.Owner = $Window; $okno.WindowStartupLocation = 'CenterOwner' }
+    catch { $okno.WindowStartupLocation = 'CenterScreen' }
+
+    $ramka = New-Object Windows.Controls.Border
+    $ramka.Background      = (Br '#111826')
+    $ramka.BorderBrush     = (Br '#34D399')
+    $ramka.BorderThickness = New-Object Windows.Thickness 1
+    $ramka.CornerRadius    = New-Object Windows.CornerRadius 16
+    $ramka.Padding         = New-Object Windows.Thickness 24,20,24,20
+    $okno.Content = $ramka
+
+    $stos = New-Object Windows.Controls.StackPanel
+    $ramka.Child = $stos
+
+    $tytul = New-Object Windows.Controls.TextBlock
+    $tytul.Text = "Zaktualizowano do $AppWersja"
+    $tytul.Foreground = (Br '#EAF2F8')
+    $tytul.FontSize = 19
+    $tytul.FontWeight = 'SemiBold'
+    $stos.Children.Add($tytul) | Out-Null
+
+    $pod = New-Object Windows.Controls.TextBlock
+    $pod.Text = 'Poprzednia wersja została zachowana obok, jako plik .bak'
+    $pod.Foreground = (Br '#9FB3C8')
+    $pod.FontSize = 12
+    $pod.TextWrapping = 'Wrap'
+    $pod.Margin = New-Object Windows.Thickness 0,2,0,14
+    $stos.Children.Add($pod) | Out-Null
+
+    if ($zmiany.Count -gt 0) {
+        foreach ($z in $zmiany) {
+            $w = New-Object Windows.Controls.TextBlock
+            $w.Text = "•  $z"
+            $w.Foreground = (Br '#C7D6E6')
+            $w.FontSize = 13
+            $w.TextWrapping = 'Wrap'
+            $w.Margin = New-Object Windows.Thickness 0,0,0,5
+            $stos.Children.Add($w) | Out-Null
+        }
+    } else {
+        $w = New-Object Windows.Controls.TextBlock
+        $w.Text = 'Wydanie bez opisu zmian.'
+        $w.Foreground = (Br '#7E8DA1')
+        $w.FontSize = 12.5
+        $stos.Children.Add($w) | Out-Null
+    }
+
+    $pasek = New-Object Windows.Controls.StackPanel
+    $pasek.Orientation = 'Horizontal'
+    $pasek.HorizontalAlignment = 'Right'
+    $pasek.Margin = New-Object Windows.Thickness 0,18,0,0
+    $stos.Children.Add($pasek) | Out-Null
+
+    $bOk = Nowy-PrzyciskAkt 'Rozumiem' '#34D399' '#04121A' -Glowny
+    $bOk.Margin = New-Object Windows.Thickness 0
+    $pasek.Children.Add($bOk) | Out-Null
+    $bOk.Add_Click({ $okno.Close() }.GetNewClosure())
+
+    $okno.ShowDialog() | Out-Null
+}
+
 function Pokaz-Aktualizacje {
     param($Info)
 
@@ -9854,6 +9971,10 @@ $Window.Add_ContentRendered({
 
     # Aktualizacje na samym koncu i w osobnym watku: brak sieci ani
     # wolny serwer nie moga opoznic pokazania okna.
+    # Najpierw ekran po aktualizacji, dopiero potem szukanie kolejnej -
+    # inaczej oba okna potrafilyby wyskoczyc naraz.
+    try { Pokaz-CoNowego } catch { }
+
     Sprawdz-AktualizacjeWTle $Window {
         param($w)
         # Nowa baza opisow wchodzi od razu, bez pytania i bez restartu -

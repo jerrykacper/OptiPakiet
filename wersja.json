@@ -2,16 +2,18 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "7.9.0",
+    "wersja": "7.9.1",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "6A312624295B996155B13775BB9A3288EC72AF0DDED4F69D51CEC43C3BBAE860",
-      "rozmiar": 469910
+      "sha256": "E229B48B0CD65B5F5E3FB640909C86862D96A2255F969D58C740CC301ED6DB80",
+      "rozmiar": 474319
     },
     "zmiany": [
-      "System aktualizacji - program sam sprawdza, czy jest nowsza wersja"
+      "Ekran \"Co nowego\" po aktualizacji - widac, co sie wlasciwie zmienilo",
+      "Poprawiony odczyt pamieci karty graficznej (WMI podawalo 4 GB dla kazdej karty)",
+      "Baza opisow rozszerzona o 6 pozycji"
     ]
   },
   "lacze": {
@@ -26,9 +28,9 @@
     "zmiany": []
   },
   "baza": {
-    "wersja": 1,
+    "wersja": 2,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "E827677B2F8B1EF2FB38D1A5C4BEAB4D3F48812E629D79EFD51D6823FC8DFB16",
-    "rozmiar": 20200
+    "sha256": "2B3776A2E586992FF821E3D100533F24C5125F4C422C7C5E1A7E6D562B8C9B4E",
+    "rozmiar": 24347
   }
 }
