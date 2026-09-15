@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '9.0.0'
+$AppWersja  = '9.0.1'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2212,7 +2212,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '9.0'
+$AppVersion = '9.0.1'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -3972,9 +3972,9 @@ $XamlText = @'
                     <StackPanel>
                       <TextBlock Text="PROCESOR" Style="{StaticResource Label}" HorizontalAlignment="Center"/>
                       <Grid Height="132" Margin="0,8,0,0">
-                        <Border Width="130" Height="130" CornerRadius="65" Background="{StaticResource Aura}"/>
+                        <Border x:Name="AuraCpu" Width="130" Height="130" CornerRadius="65" Opacity="0.35" Background="{StaticResource Aura}"/>
                         <Ellipse Width="112" Height="112" Stroke="#141D2C" StrokeThickness="9"/>
-                        <Path x:Name="RingCpu" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource AccentGrad}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <Path x:Name="RingCpu" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource Accent}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                           <TextBlock x:Name="TxtCpu" Text="—" Foreground="{StaticResource Txt}" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center"/>
                           <TextBlock Text="obciążenie" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Center"/>
@@ -3986,9 +3986,9 @@ $XamlText = @'
                     <StackPanel>
                       <TextBlock Text="PAMIĘĆ RAM" Style="{StaticResource Label}" HorizontalAlignment="Center"/>
                       <Grid Height="132" Margin="0,8,0,0">
-                        <Border Width="130" Height="130" CornerRadius="65" Background="{StaticResource Aura}"/>
+                        <Border x:Name="AuraRam" Width="130" Height="130" CornerRadius="65" Opacity="0.35" Background="{StaticResource Aura}"/>
                         <Ellipse Width="112" Height="112" Stroke="#141D2C" StrokeThickness="9"/>
-                        <Path x:Name="RingRam" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource AccentGrad}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <Path x:Name="RingRam" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource Accent}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                           <TextBlock x:Name="TxtRam" Text="—" Foreground="{StaticResource Txt}" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center"/>
                           <TextBlock x:Name="TxtRamSub" Text="zajęte" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Center"/>
@@ -4000,9 +4000,9 @@ $XamlText = @'
                     <StackPanel>
                       <TextBlock Text="DYSK SYSTEMOWY" Style="{StaticResource Label}" HorizontalAlignment="Center"/>
                       <Grid Height="132" Margin="0,8,0,0">
-                        <Border Width="130" Height="130" CornerRadius="65" Background="{StaticResource Aura}"/>
+                        <Border x:Name="AuraDsk" Width="130" Height="130" CornerRadius="65" Opacity="0.35" Background="{StaticResource Aura}"/>
                         <Ellipse Width="112" Height="112" Stroke="#141D2C" StrokeThickness="9"/>
-                        <Path x:Name="RingDsk" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource AccentGrad}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <Path x:Name="RingDsk" Width="112" Height="112" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{StaticResource Accent}" StrokeThickness="9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                           <TextBlock x:Name="TxtDsk" Text="—" Foreground="{StaticResource Txt}" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center"/>
                           <TextBlock x:Name="TxtDskSub" Text="zajęte" Foreground="{StaticResource Dim}" FontSize="10.5" HorizontalAlignment="Center"/>
@@ -4536,6 +4536,7 @@ foreach ($n in @('TitleBar','BtnMin','BtnClose','VerLabel','LogoMark','LogoRing'
                  'BtnDiagRun','BtnDiagReport','HeadTools','ActionBar',
                  'BenchOut','BtnBenchBase','BtnBenchNow',
                  'RingCpu','TxtCpu','RingRam','TxtRam','TxtRamSub','RingDsk','TxtDsk','TxtDskSub',
+                 'AuraCpu','AuraRam','AuraDsk',
                  'DashScore','DashBar','DashHint','DashRecent',
                  'BtnDashFull','BtnDashGames','BtnDashDiag',
                  'PageTitle','PageDesc','BtnRefresh','BtnSelRec','BtnSelNone',
@@ -9069,6 +9070,19 @@ function Get-RingBrush {
     return $script:RingBrush[$Hex]
 }
 
+# Poswiata pod pierscieniem jasnieje razem z obciazeniem. To nie jest
+# ozdobnik: pusty Pulpit i obciazony Pulpit roznia sie teraz na pierwszy
+# rzut oka, bez czytania liczb. Zakres celowo waski - od ledwie widocznej
+# do wyraznej, zeby przy 100% nie razilo.
+function Set-Poswiata {
+    param($El, [double]$Pct)
+    if (-not $El) { return }
+    if ($Pct -lt 0) { $Pct = 0 }
+    if ($Pct -gt 100) { $Pct = 100 }
+    $do = 0.22 + (0.78 * ($Pct / 100.0)) * 0.9
+    Fade $El $do 600 $El.Opacity
+}
+
 function Set-Ring {
     param($Path, [double]$Pct, [string]$Hex)
     if (-not $Path) { return }
@@ -10613,9 +10627,9 @@ $RingTimer.Add_Tick({
         }
         $v = [double]$script:GCur[$k]
         switch ($k) {
-            'cpu' { $UI.TxtCpu.Text = "{0:N0}%" -f $v; Set-Ring $UI.RingCpu $v (Hue $v) }
-            'ram' { $UI.TxtRam.Text = "{0:N0}%" -f $v; Set-Ring $UI.RingRam $v (Hue $v) }
-            'dsk' { $UI.TxtDsk.Text = "{0:N0}%" -f $v; Set-Ring $UI.RingDsk $v (Hue $v) }
+            'cpu' { $UI.TxtCpu.Text = "{0:N0}%" -f $v; Set-Ring $UI.RingCpu $v (Hue $v); Set-Poswiata $UI.AuraCpu $v }
+            'ram' { $UI.TxtRam.Text = "{0:N0}%" -f $v; Set-Ring $UI.RingRam $v (Hue $v); Set-Poswiata $UI.AuraRam $v }
+            'dsk' { $UI.TxtDsk.Text = "{0:N0}%" -f $v; Set-Ring $UI.RingDsk $v (Hue $v); Set-Poswiata $UI.AuraDsk $v }
         }
     }
 })
