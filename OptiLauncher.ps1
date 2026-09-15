@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '7.9.4'
+$AppWersja  = '7.9.5'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -904,7 +904,11 @@ function Load-UstAkt {
     # poWersja / poZmiany: slad po wlasnie zainstalowanej aktualizacji.
     # Zapisujemy je tuz przed podmiana pliku, bo lista zmian przychodzi
     # z manifestu i po restarcie program juz jej nie ma skad wziac.
-    $u = @{ auto = $true; pomin = ''; ostatnie = ''; poWersja = ''; poZmiany = @() }
+    # czeka: wersja juz znaleziona, ktorej uzytkownik jeszcze nie
+    # zainstalowal. Dopoki tam siedzi, limit raz na dobe nie obowiazuje -
+    # inaczej "Później" znaczyloby "za dwadziescia godzin", a nie
+    # "przy nastepnym uruchomieniu", jak mowi przycisk.
+    $u = @{ auto = $true; pomin = ''; ostatnie = ''; poWersja = ''; poZmiany = @(); czeka = '' }
     try {
         if (Test-Path $AktFile) {
             $j = Get-Content $AktFile -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -913,6 +917,7 @@ function Load-UstAkt {
             if ($j.ostatnie)       { $u.ostatnie = "$($j.ostatnie)" }
             if ($j.poWersja)       { $u.poWersja = "$($j.poWersja)" }
             if ($j.poZmiany)       { $u.poZmiany = @($j.poZmiany) }
+            if ($j.czeka)          { $u.czeka = "$($j.czeka)" }
         }
     } catch { }
     return $u
@@ -927,7 +932,8 @@ function Save-UstAkt {
            pomin    = "$($U.pomin)"
            ostatnie = "$($U.ostatnie)"
            poWersja = "$($U.poWersja)"
-           poZmiany = $poz } |
+           poZmiany = $poz
+           czeka    = "$($U.czeka)" } |
             ConvertTo-Json | Set-Content $AktFile -Encoding UTF8
     } catch { }
 }
@@ -1067,7 +1073,12 @@ function Sprawdz-Wszystko {
     if (-not (Akt-Skonfigurowane)) { return $null }
 
     $u = Load-UstAkt
-    if (-not $Wymuszone) {
+
+    # Znaleziona, a jeszcze niezainstalowana wersja omija limit czasowy.
+    $czekaJuz = $false
+    try { $czekaJuz = ($u.czeka -and (Nowsza-Wersja "$($u.czeka)" $AppWersja) -and ($u.pomin -ne $u.czeka)) } catch { }
+
+    if (-not $Wymuszone -and -not $czekaJuz) {
         if (-not $u.auto) { return $null }
         if ($u.ostatnie) {
             try {
@@ -1094,6 +1105,18 @@ function Sprawdz-Wszystko {
     try { $baza = [bool](Zaktualizuj-Baze $m) } catch { }
 
     $akt = Ocen-Manifest $m $u -Wymuszone:$Wymuszone
+
+    # Zapamietujemy, ze cos czeka - albo kasujemy slad, gdy juz nie czeka
+    # (zainstalowane albo pominiete).
+    try {
+        $nowyCzeka = ''
+        if ($akt) { $nowyCzeka = "$($akt.Wersja)" }
+        if ("$($u.czeka)" -ne $nowyCzeka) {
+            $u.czeka = $nowyCzeka
+            Save-UstAkt $u
+        }
+    } catch { }
+
     if (-not $akt -and -not $baza -and -not $Wymuszone) { return $null }
 
     return @{ Akt = $akt; BazaOdswiezona = $baza; Polaczono = $true }
@@ -2129,7 +2152,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '7.9.4'
+$AppVersion = '7.9.5'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
