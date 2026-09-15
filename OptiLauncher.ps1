@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '9.0.1'
+$AppWersja  = '9.1.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2212,7 +2212,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '9.0.1'
+$AppVersion = '9.1'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -2760,18 +2760,124 @@ $Motywy = @(
      } }
 )
 
+# =====================================================================
+#  MOTYW WLASNY
+#
+#  Motyw Szmaragd powstal przez obrot odcienia calej domyslnej palety.
+#  Ten sam rachunek da sie zrobic na zywo, wiec zamiast jedenastego
+#  gotowego zestawu uzytkownik wybiera barwe, a program przelicza
+#  wszystkie 54 kolory tak, zeby dalej trzymaly sie kupy: jasnosc
+#  i nasycenie zostaja, zmienia sie sam odcien.
+#
+#  Zielony, zolty i czerwony sa wylaczone z obrotu - w calym programie
+#  znacza "zastosowane", "ostroznie" i "NIE WESZLO", wiec przekrecenie
+#  ich na fioletowo zabraloby im znaczenie.
+# =====================================================================
+
+$script:BarwaBazowa = 187.0   # odcien domyslnego akcentu #22D3EE
+
+$script:KoloryZnaczace = @(
+    '#34D399','#22C55E','#4ADE80','#16A34A',   # zielone - zastosowane
+    '#FBBF24','#F59E0B','#FCD34D','#EAB308',   # zolte   - ostroznie
+    '#FB7185','#F43F5E','#EF4444','#DC2626'    # czerwone - nie weszlo
+)
+
+function ZHex-NaHLS {
+    param([string]$Hex)
+    $h = "$Hex".TrimStart('#')
+    $a = ''
+    if ($h.Length -eq 8) { $a = $h.Substring(0,2); $h = $h.Substring(2) }
+    $r = [Convert]::ToInt32($h.Substring(0,2),16) / 255.0
+    $g = [Convert]::ToInt32($h.Substring(2,2),16) / 255.0
+    $b = [Convert]::ToInt32($h.Substring(4,2),16) / 255.0
+
+    $max = [Math]::Max($r, [Math]::Max($g,$b))
+    $min = [Math]::Min($r, [Math]::Min($g,$b))
+    $l = ($max + $min) / 2.0
+    $hh = 0.0; $s = 0.0
+    if ($max -ne $min) {
+        $d = $max - $min
+        if ($l -gt 0.5) { $s = $d / (2.0 - $max - $min) } else { $s = $d / ($max + $min) }
+        if     ($max -eq $r) { $hh = (($g - $b) / $d); if ($g -lt $b) { $hh += 6.0 } }
+        elseif ($max -eq $g) { $hh = (($b - $r) / $d) + 2.0 }
+        else                 { $hh = (($r - $g) / $d) + 4.0 }
+        $hh = $hh * 60.0
+    }
+    return @{ H = $hh; L = $l; S = $s; A = $a }
+}
+
+function ZHLS-NaHex {
+    param([double]$H, [double]$L, [double]$S, [string]$A = '')
+    $H = (($H % 360) + 360) % 360
+    if ($S -le 0) {
+        $v = [int][Math]::Round($L * 255)
+        return ('#' + $A.ToUpper() + ('{0:X2}{0:X2}{0:X2}' -f $v))
+    }
+    $q = if ($L -lt 0.5) { $L * (1 + $S) } else { $L + $S - $L * $S }
+    $p = 2 * $L - $q
+    $wart = {
+        param($t)
+        if ($t -lt 0) { $t += 1 }
+        if ($t -gt 1) { $t -= 1 }
+        if ($t -lt 1.0/6) { return $p + ($q - $p) * 6 * $t }
+        if ($t -lt 1.0/2) { return $q }
+        if ($t -lt 2.0/3) { return $p + ($q - $p) * (2.0/3 - $t) * 6 }
+        return $p
+    }
+    $hn = $H / 360.0
+    $r = [int][Math]::Round((& $wart ($hn + 1.0/3)) * 255)
+    $g = [int][Math]::Round((& $wart $hn) * 255)
+    $b = [int][Math]::Round((& $wart ($hn - 1.0/3)) * 255)
+    return ('#' + $A.ToUpper() + ('{0:X2}{1:X2}{2:X2}' -f $r, $g, $b))
+}
+
+function Zbuduj-MotywWlasny {
+    param([double]$Barwa)
+
+    # Zestaw kluczy bierzemy z gotowego motywu - wszystkie maja ten sam,
+    # wiec nie trzeba go powielac w kodzie.
+    $wzor = @($Motywy | Where-Object { $_.Id -eq 'grafit' })[0]
+    if (-not $wzor) { return $null }
+
+    $delta = $Barwa - $script:BarwaBazowa
+    $mapa = @{}
+    foreach ($k in $wzor.Mapa.Keys) {
+        $klucz = "$k".ToUpper()
+        if ($script:KoloryZnaczace -contains $klucz) { continue }   # znaczenie ma pierwszenstwo nad estetyka
+        try {
+            $c = ZHex-NaHLS $klucz
+            $mapa[$klucz] = ZHLS-NaHex ($c.H + $delta) $c.L $c.S $c.A
+        } catch { }
+    }
+
+    $akcent = ZHLS-NaHex ($script:BarwaBazowa + $delta) 0.53 0.86
+    $drugi  = ZHLS-NaHex ($script:BarwaBazowa + $delta + 35) 0.73 0.92
+    $tlo    = ZHLS-NaHex ($script:BarwaBazowa + $delta) 0.11 0.32
+    $tlo2   = ZHLS-NaHex ($script:BarwaBazowa + $delta) 0.05 0.34
+
+    return @{
+        Id     = 'wlasny'
+        Nazwa  = 'Własny'
+        Opis   = ("barwa {0:N0}°" -f $Barwa)
+        Probki = @($akcent, $drugi, $tlo, $tlo2, '#EAF2F8')
+        Mapa   = $mapa
+    }
+}
+
+
 $MotywFile = Join-Path $DataDir 'motyw.json'
 
 # W motyw.json siedza wszystkie ustawienia wygladu: motyw, gestosc widoku
 # i tlo Mica. Jeden plik, zeby nie mnozyc smieci w katalogu danych.
 function Load-Wyglad {
-    $w = @{ id = 'cyjan'; gestosc = 'komfort'; mica = $false }
+    $w = @{ id = 'cyjan'; gestosc = 'komfort'; mica = $false; barwa = 187.0 }
     try {
         if (Test-Path $MotywFile) {
             $j = Get-Content $MotywFile -Raw -Encoding UTF8 | ConvertFrom-Json
             if ($j.id)      { $w.id = "$($j.id)" }
             if ($j.gestosc) { $w.gestosc = "$($j.gestosc)" }
             if ($null -ne $j.mica) { $w.mica = [bool]$j.mica }
+            if ($null -ne $j.barwa) { $w.barwa = [double]$j.barwa }
         }
     } catch { }
     return $w
@@ -2779,7 +2885,7 @@ function Load-Wyglad {
 
 function Save-Wyglad {
     try {
-        @{ id = $script:MotywId; gestosc = $script:Gestosc; mica = $script:Mica } |
+        @{ id = $script:MotywId; gestosc = $script:Gestosc; mica = $script:Mica; barwa = $script:Barwa } |
             ConvertTo-Json | Set-Content $MotywFile -Encoding UTF8
     } catch { }
 }
@@ -2788,6 +2894,15 @@ $script:Wyglad  = Load-Wyglad
 $script:MotywId = $script:Wyglad.id
 $script:Gestosc = $script:Wyglad.gestosc
 $script:Mica    = $script:Wyglad.mica
+$script:Barwa   = [double]$script:Wyglad.barwa
+
+# Motyw wlasny dolacza do listy dopiero tutaj, bo do zbudowania potrzebuje
+# zapisanej barwy.
+try {
+    $wlasny = Zbuduj-MotywWlasny $script:Barwa
+    if ($wlasny) { $Motywy = @($Motywy) + $wlasny }
+} catch { }
+
 $script:Motyw   = @($Motywy | Where-Object { $_.Id -eq $script:MotywId })[0]
 if (-not $script:Motyw) { $script:Motyw = $Motywy[0]; $script:MotywId = 'cyjan' }
 
@@ -9642,6 +9757,76 @@ function Render-Skins {
         }
         $UI.SkinHost.Children.Add($card.Border) | Out-Null
     }
+
+    Rysuj-WyborBarwy
+}
+
+# Wybor wlasnej barwy - dwanascie odcieni co 30 stopni. Suwak dawalby
+# wiecej swobody, ale te dwanascie i tak pokrywa cale kolo, a klikniecie
+# jest szybsze i trudniej trafic w kolor, ktory wyglada zle.
+function Rysuj-WyborBarwy {
+    $karta = New-Object Windows.Controls.Border
+    $karta.Background = Br '#111826'
+    $karta.BorderBrush = Br '#1E2A3A'
+    $karta.BorderThickness = New-Object Windows.Thickness 1
+    $karta.CornerRadius = New-Object Windows.CornerRadius 14
+    $karta.Padding = New-Object Windows.Thickness 18,15,18,16
+    $karta.Margin = New-Object Windows.Thickness 0,4,0,12
+
+    $stos = New-Object Windows.Controls.StackPanel
+    $karta.Child = $stos
+
+    $tyt = New-Object Windows.Controls.TextBlock
+    $tyt.Text = 'WŁASNA BARWA'
+    $tyt.FontSize = 10.5
+    $tyt.FontWeight = 'Bold'
+    $tyt.Foreground = $Window.FindResource('Dim')
+    $stos.Children.Add($tyt) | Out-Null
+
+    $op = New-Object Windows.Controls.TextBlock
+    $op.Text = 'Wybierz kolor, a program przeliczy całą paletę - jasność i nasycenie zostają, zmienia się sam odcień. Zielony, żółty i czerwony zostają nietknięte, bo w całym programie znaczą "zastosowane", "ostrożnie" i "NIE WESZŁO".'
+    $op.FontSize = 11.5
+    $op.TextWrapping = 'Wrap'
+    $op.LineHeight = 18
+    $op.Foreground = $Window.FindResource('Muted')
+    $op.Margin = New-Object Windows.Thickness 0,6,0,0
+    $stos.Children.Add($op) | Out-Null
+
+    $rzad = New-Object Windows.Controls.WrapPanel
+    $rzad.Margin = New-Object Windows.Thickness 0,14,0,0
+    $stos.Children.Add($rzad) | Out-Null
+
+    foreach ($b in @(0,30,60,90,120,150,180,210,240,270,300,330)) {
+        $barwa = [double]$b
+        $hex = ZHLS-NaHex $barwa 0.53 0.86
+        $wybrany = ($script:MotywId -eq 'wlasny' -and [Math]::Abs($script:Barwa - $barwa) -lt 0.5)
+
+        $kolo = New-Object Windows.Controls.Border
+        $kolo.Width = 38
+        $kolo.Height = 38
+        $kolo.CornerRadius = New-Object Windows.CornerRadius 19
+        $kolo.Margin = New-Object Windows.Thickness 0,0,10,10
+        $kolo.Cursor = 'Hand'
+        $kolo.Background = New-Object Windows.Media.SolidColorBrush ([Windows.Media.ColorConverter]::ConvertFromString($hex))
+        $kolo.BorderThickness = New-Object Windows.Thickness $(if ($wybrany) { 3 } else { 0 })
+        $kolo.BorderBrush = Br '#EAF2F8'
+        $kolo.ToolTip = ("Barwa {0:N0}° - kliknij, żeby ustawić" -f $barwa)
+
+        $kolo.Add_MouseLeftButtonUp({
+            $r = [System.Windows.MessageBox]::Show(
+                ("Ustawic wlasna barwe {0:N0} stopni?" -f $barwa) + [Environment]::NewLine + [Environment]::NewLine +
+                'Program uruchomi sie ponownie, zeby wtopic kolory w interfejs. Trwajace zadanie zostanie przerwane.',
+                'OptiLauncher - wyglad', 'YesNo', 'Question')
+            if ($r -eq 'Yes') {
+                $script:Barwa = $barwa
+                Restart-Programu 'wlasny'
+            }
+        }.GetNewClosure())
+
+        $rzad.Children.Add($kolo) | Out-Null
+    }
+
+    $UI.SkinHost.Children.Add($karta) | Out-Null
 }
 
 # =====================================================================

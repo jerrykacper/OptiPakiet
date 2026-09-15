@@ -6,7 +6,7 @@ Bez instalatorów trzecich firm, bez telemetrii, bez usług działających w tle
 
 ---
 
-## OptiLauncher 9.0.1
+## OptiLauncher 9.1
 
 Optymalizacja i diagnostyka komputera.
 
@@ -42,7 +42,7 @@ bo nikt ich nie wstukuje w polu wyszukiwania.
 | Procesy w tle | co zajmuje pamięć teraz, z opisem każdego procesu |
 | Łącze | ping, jitter i straty osobno do routera i internetu, prędkości w obie strony, publiczny IP, traceroute, ping do platform gamingowych, ustawienia sterownika karty |
 | Diagnostyka | skan systemu, raport HTML, pomiar przed i po |
-| Wygląd | dziesięć motywów, gęstość widoku, tło Mica |
+| Wygląd | dziesięć motywów plus własna barwa, gęstość widoku, tło Mica |
 
 Do tego zadania optymalizacyjne w sześciu grupach: gry i wydajność,
 system, usługi, czyszczenie, sieć, aplikacje — każde z cofaniem zmian.

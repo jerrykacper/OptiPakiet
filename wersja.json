@@ -2,25 +2,24 @@
   "format": 1,
   "wydano": "2026-09-15",
   "opti": {
-    "wersja": "9.0.1",
+    "wersja": "9.1.0",
     "minimalna": "7.0.0",
     "strona": "https://github.com/jerrykacper/OptiPakiet",
     "ps1": {
       "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/OptiLauncher.ps1",
-      "sha256": "8B68BB59D413B80830CF16985FC7EF46205BB910989F8830B6B6081F2077342C",
-      "rozmiar": 552777
+      "sha256": "9996F4A20FBBC0C7C5B15DECD37F1B3644440D6248C5CCEBB3901933CEA27D5F",
+      "rozmiar": 560160
     },
     "zmiany": [
-      "Poswiata pod pierscieniami Pulpitu jasnieje razem z obciazeniem - widac stan bez czytania liczb",
-      "Cofnieta zmiana z 9.0, ktora odbierala pierscieniom kolor zalezny od obciazenia",
-      "Liczniki nie skacza juz przy zmianie cyfr, ostrzejszy drobny tekst",
-      "Puste zakladki z ikona, wyjasnieniem i przyciskiem prowadzacym dalej"
+      "Wlasna barwa interfejsu - wybierasz kolor, program przelicza cala palete",
+      "Zielony, zolty i czerwony zostaja nietkniete, bo znacza stan zadania",
+      "Poswiata pod pierscieniami Pulpitu jasnieje razem z obciazeniem"
     ]
   },
   "baza": {
-    "wersja": 14,
+    "wersja": 15,
     "url": "https://raw.githubusercontent.com/jerrykacper/OptiPakiet/main/baza.json",
-    "sha256": "2FDF35E846DEFCCE28AF4148E5177D765C3CF4653337956F3EB11B359BD16CCE",
+    "sha256": "260FD08A81947E20B0226D13E4394F710408E9EDD321134144162279BADA1A0C",
     "rozmiar": 27178
   }
 }
