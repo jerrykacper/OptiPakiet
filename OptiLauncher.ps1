@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.3.3'
+$AppWersja  = '8.3.5'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -1416,96 +1416,68 @@ function Zapamietaj-Aktualizacje {
     } catch { }
 }
 
-# Pobieranie z paskiem postepu.
+# Pobieranie pliku aktualizacji.
 #
-# Historia nieudanych podejsc, zeby nikt tego nie "poprawil" z powrotem:
+# CZTERY podejscia, ktore nie zadzialaly u uzytkownika - nie wracac do nich:
+#   1. Zdarzenia WebClient - odpalaja sie na watku puli bez runspace'u
+#      PowerShella i ubijaja caly proces.
+#   2. Runspace + DispatcherTimer - zegar nie tykal w modalnym oknie.
+#   3. Wlasna petla na HttpWebRequest - wisiala na GetResponse.
+#   4. Runspace + petla pompujaca komunikaty - konsola pokazala, ze
+#      funkcja postepu nie jest wolana ani razu, wiec zatrzymywalo sie
+#      jeszcze przed petla.
 #
-# 1. Zdarzenia WebClient - odpalaja sie na watku puli bez runspace'u
-#    PowerShella, co konczy sie ubiciem calego procesu.
-# 2. Runspace + DispatcherTimer - okno aktualizacji jest modalne i kreci
-#    wlasna petle komunikatow; zegar zalozony pod spodem nie tykal.
-# 3. Wlasna petla na HttpWebRequest, na watku okna - zawieszala sie na
-#    GetResponse, jeszcze przed pierwszym bajtem, mimo ustawionego
-#    Timeout. Konsola pokazala to wprost: wpis "pobieram", potem cisza.
+# Wspolny mianownik tamtych czterech: kazde dokladalo wlasna maszynerie
+# miedzy klikniecie a pobranie. Tutaj nie ma zadnej. Jedno wywolanie,
+# to samo, ktorym schodzi manifest, prosto na watku okna. Plik ma pol
+# megabajta, wiec okno zamarza na moment - i to jest cena, ktora warto
+# zaplacic za aktualizacje, ktora w ogole dziala.
 #
-# Co dziala: Invoke-WebRequest. Tym samym wywolaniem od poczatku schodzi
-# manifest i nie zawiodlo ani razu. Wiec pobieramy nim, w runspace w tle,
-# a postep czytamy z rosnacego pliku w petli, ktora SAMA pompuje kolejke
-# komunikatow okna - dzieki temu nie zalezy od zegara ani od tego, czy
-# petla modalna go obsluzy.
+# Kazdy krok idzie do konsoli. Jesli cokolwiek jeszcze kiedys stanie,
+# ostatni wpis powie gdzie, zamiast zostawiac nas z animowanym paskiem.
 function Pobierz-ZPostepem {
     param([string]$Url, [string]$Cel, [int64]$Rozmiar, $Okno, [scriptblock]$Postep, [scriptblock]$Koniec)
 
+    Add-Log 'Aktualizacja: start pobierania.' 'info'
+
     try { Remove-Item -LiteralPath $Cel -Force -ErrorAction SilentlyContinue } catch { }
-
-    $wspolne = [hashtable]::Synchronized(@{ Gotowe = $false; Blad = '' })
-
     try {
-        $rs = [runspacefactory]::CreateRunspace()
-        $rs.ApartmentState = 'STA'
-        $rs.ThreadOptions  = 'ReuseThread'
-        $rs.Open()
-        $rs.SessionStateProxy.SetVariable('S',   $wspolne)
-        $rs.SessionStateProxy.SetVariable('Url', $Url)
-        $rs.SessionStateProxy.SetVariable('Cel', $Cel)
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
+    } catch { }
 
-        $ps = [powershell]::Create()
-        $ps.Runspace = $rs
-        $null = $ps.AddScript({
-            try {
-                [Net.ServicePointManager]::SecurityProtocol =
-                    [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
-            } catch { }
-            try {
-                Invoke-WebRequest -Uri $Url -OutFile $Cel -UseBasicParsing -TimeoutSec 90 -ErrorAction Stop
-            } catch {
-                $S.Blad = "$($_.Exception.Message)"
-            }
-            $S.Gotowe = $true
-        })
-        $uchwyt = $ps.BeginInvoke()
+    # Pasek nie udaje, ze zna postep - bo go nie zna. Przy pol megabajta
+    # to i tak chwila, a udawany procent bylby klamstwem.
+    try {
+        & $Postep -1 0 0
+        $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render)
+    } catch { }
+
+    $blad = ''
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $Cel -UseBasicParsing -TimeoutSec 90 -ErrorAction Stop
+        Add-Log 'Aktualizacja: pobieranie zakonczone.' 'info'
     } catch {
-        try { & $Koniec "Nie udalo sie rozpoczac pobierania: $($_.Exception.Message)" } catch { }
-        return @{ Ok = $true }
+        $blad = "$($_.Exception.Message)"
+        Add-Log "Aktualizacja: blad pobierania - $blad" 'err'
     }
 
-    # Petla sterowana stad, nie zegarem. Po kazdym obrocie oddajemy
-    # sterowanie petli komunikatow, wiec okno zyje i pasek sie rusza.
-    $obrotow = 0
-    while (-not $wspolne.Gotowe) {
+    if (-not $blad) {
         $ile = [int64]0
-        try { if (Test-Path -LiteralPath $Cel) { $ile = [int64](Get-Item -LiteralPath $Cel -ErrorAction SilentlyContinue).Length } } catch { }
-
-        $proc = 0
-        if ($Rozmiar -gt 0) { $proc = [int][Math]::Min(99, (100 * $ile / $Rozmiar)) }
-        try { & $Postep $proc $ile $Rozmiar } catch { }
-
-        try { $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Background) } catch { }
-        Start-Sleep -Milliseconds 120
-
-        # Twardy limit: dwie minuty. Zadne pobieranie tego pliku nie ma
-        # prawa trwac dluzej, a pasek krecacy sie w nieskonczonosc juz
-        # raz kosztowal nas pol dnia.
-        $obrotow++
-        if ($obrotow -gt 1000) {
-            try { $ps.Stop() } catch { }
-            try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
-            try { & $Koniec 'Pobieranie przekroczyło limit czasu.' } catch { }
-            return @{ Ok = $true }
+        try { $ile = [int64](Get-Item -LiteralPath $Cel -ErrorAction Stop).Length } catch { $ile = 0 }
+        Add-Log ("Aktualizacja: zapisano {0:N0} bajtow." -f $ile) 'info'
+        if ($ile -le 0) { $blad = 'Pobrany plik jest pusty.' }
+        else {
+            try {
+                & $Postep 100 $ile $ile
+                $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render)
+            } catch { }
         }
     }
 
-    try { $null = $ps.EndInvoke($uchwyt) } catch { }
-    try { $ps.Dispose(); $rs.Close(); $rs.Dispose() } catch { }
-
-    if (-not $wspolne.Blad) {
-        $ile = [int64]0
-        try { $ile = [int64](Get-Item -LiteralPath $Cel).Length } catch { }
-        try { & $Postep 100 $ile $Rozmiar } catch { }
-        try { $Okno.Dispatcher.Invoke([action]{}, [Windows.Threading.DispatcherPriority]::Render) } catch { }
+    try { & $Koniec $blad } catch {
+        Add-Log "Aktualizacja: blad po pobraniu - $($_.Exception.Message)" 'err'
     }
-
-    try { & $Koniec "$($wspolne.Blad)" } catch { }
     return @{ Ok = $true }
 }
 
@@ -2198,7 +2170,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.3.3'
+$AppVersion = '8.3.5'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -11107,7 +11079,11 @@ function Pokaz-Aktualizacje {
 
         $postep = {
             param($Proc, $Ile, $Caly)
-            if ($Caly -gt 0) {
+            if ($Proc -lt 0) {
+                # Nie znamy postepu - pasek pracuje, ale nie klamie liczba.
+                $bar.IsIndeterminate = $true
+                $stan.Text = 'Pobieram plik aktualizacji...'
+            } elseif ($Caly -gt 0) {
                 $bar.IsIndeterminate = $false
                 $bar.Value = $Proc
                 $stan.Text = ('Pobieram... {0}%   ({1:N1} z {2:N1} MB)' -f $Proc, ($Ile / 1MB), ($Caly / 1MB))
