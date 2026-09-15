@@ -95,7 +95,7 @@ param([string]$Tryb = '')
 # =====================================================================
 
 $AppNazwa   = 'OptiLauncher'
-$AppWersja  = '8.1.1'
+$AppWersja  = '8.2.0'
 $AppAutor   = 'Jerremi'
 
 # ikona zapisana jako base64 - dzieki temu nie ma osobnego pliku .ico
@@ -2199,7 +2199,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$AppVersion = '8.1.1'
+$AppVersion = '8.2'
 $DataDir    = Join-Path $env:LOCALAPPDATA 'OptiLauncher'
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force | Out-Null }
 $LogFile    = Join-Path $DataDir ("log_{0}.txt" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -10132,19 +10132,37 @@ function Zbadaj-CzasStartu {
         $ps = [powershell]::Create()
         $ps.Runspace = $rs
         $null = $ps.AddScript({
-            $wynik = @{ Ok = $false; Blad = ''; Boot = 0; Main = 0; Ile = 0; Winni = @() }
+            $wynik = @{ Ok = $false; Blad = ''; Boot = 0; Main = 0; Ile = 0; Winni = @(); Historia = @() }
             $log = 'Microsoft-Windows-Diagnostics-Performance/Operational'
             try {
-                # Ostatni rozruch - sam czas.
+                # Ostatnie rozruchy - czas kazdego z nich. Jeden pomiar mowi
+                # tylko "tyle trwalo dzis"; dopiero ciag pokazuje, czy zmiany
+                # w Autostarcie cokolwiek dadzy.
                 $e100 = @(Get-WinEvent -FilterHashtable @{ LogName = $log; Id = 100 } `
-                                       -MaxEvents 1 -ErrorAction Stop)
-                if ($e100.Count -gt 0) {
-                    $x = [xml]$e100[0].ToXml()
-                    $d = @{}
-                    foreach ($pd in $x.Event.EventData.Data) { $d[$pd.Name] = "$($pd.'#text')" }
-                    if ($d['BootTime'])         { $wynik.Boot = [int]$d['BootTime'] }
-                    if ($d['MainPathBootTime']) { $wynik.Main = [int]$d['MainPathBootTime'] }
-                    $wynik.Ok = $true
+                                       -MaxEvents 24 -ErrorAction Stop)
+                $hist = New-Object System.Collections.ArrayList
+                foreach ($e in $e100) {
+                    try {
+                        $x = [xml]$e.ToXml()
+                        $d = @{}
+                        foreach ($pd in $x.Event.EventData.Data) { $d[$pd.Name] = "$($pd.'#text')" }
+                        $bt = 0
+                        if ($d['BootTime']) { $bt = [int]$d['BootTime'] }
+                        if ($bt -le 0) { continue }
+                        [void]$hist.Add([pscustomobject]@{ Ms = $bt; Kiedy = $e.TimeCreated })
+                    } catch { }
+                }
+                if ($hist.Count -gt 0) {
+                    $wynik.Ok   = $true
+                    $wynik.Boot = $hist[0].Ms
+                    # Najstarszy z lewej, najnowszy z prawej.
+                    $wynik.Historia = @($hist | Sort-Object Kiedy)
+                    try {
+                        $x0 = [xml]$e100[0].ToXml()
+                        foreach ($pd in $x0.Event.EventData.Data) {
+                            if ($pd.Name -eq 'MainPathBootTime') { $wynik.Main = [int]"$($pd.'#text')" }
+                        }
+                    } catch { }
                 }
 
                 # Winowajcy z ostatnich kilkunastu rozruchow. Pojedynczy
@@ -10229,6 +10247,75 @@ function Pokaz-CzasStartu {
     }
     $UI.BootHint.Text = $opis
 
+    # --- historia: slupek na kazdy rozruch ---
+    # To jest odpowiedz na pytanie "czy moje zmiany cokolwiek dały".
+    # Bez tego Autostart jest wiara, a nie pomiarem.
+    $hist = @($W.Historia)
+    if ($hist.Count -ge 3) {
+        $naglH = New-Object Windows.Controls.TextBlock
+        $naglH.Text = "Ostatnie rozruchy ($($hist.Count))"
+        $naglH.Foreground = Br '#9FB3C8'
+        $naglH.FontSize = 11.5
+        $naglH.Margin = New-Object Windows.Thickness 0,0,0,7
+        $UI.BootHost.Children.Add($naglH) | Out-Null
+
+        $maxH = 1
+        foreach ($h in $hist) { if ($h.Ms -gt $maxH) { $maxH = $h.Ms } }
+
+        $wykres = New-Object Windows.Controls.StackPanel
+        $wykres.Orientation = 'Horizontal'
+        $wykres.Height = 56
+        $wykres.Margin = New-Object Windows.Thickness 0,0,0,6
+        foreach ($h in $hist) {
+            $kol = New-Object Windows.Controls.Border
+            $kol.Width  = 13
+            $kol.Margin = New-Object Windows.Thickness 0,0,3,0
+            $kol.VerticalAlignment = 'Bottom'
+            $kol.CornerRadius = New-Object Windows.CornerRadius 3
+            $kol.Height = [Math]::Max(4, 56 * ($h.Ms / $maxH))
+            $kol.Background = $(if ($h.Ms -ge 60000) { Br '#FB7185' } elseif ($h.Ms -ge 30000) { Br '#FBBF24' } else { Br '#34D399' })
+            $kol.ToolTip = ((Fmt-Sek $h.Ms) + '   ' + $h.Kiedy.ToString('yyyy-MM-dd HH:mm'))
+            $wykres.Children.Add($kol) | Out-Null
+        }
+        $UI.BootHost.Children.Add($wykres) | Out-Null
+
+        # Porownanie polowek - bez udawania precyzji, ktorej tu nie ma.
+        if ($hist.Count -ge 6) {
+            $n = [Math]::Min(5, [int]($hist.Count / 2))
+            $stare = @($hist | Select-Object -First $n)
+            $nowe  = @($hist | Select-Object -Last  $n)
+            $srS = ($stare | Measure-Object Ms -Average).Average
+            $srN = ($nowe  | Measure-Object Ms -Average).Average
+            $roz = [int]($srS - $srN)
+
+            $tr = New-Object Windows.Controls.TextBlock
+            $tr.FontSize = 11.5
+            $tr.TextWrapping = 'Wrap'
+            $tr.Margin = New-Object Windows.Thickness 0,0,0,10
+
+            $trL = New-Object Windows.Documents.Run
+            if ($roz -ge 1500) {
+                $trL.Text = ('Szybciej o ' + (Fmt-Sek $roz) + '  ')
+                $trL.Foreground = Br '#34D399'
+            } elseif ($roz -le -1500) {
+                $trL.Text = ('Wolniej o ' + (Fmt-Sek ([Math]::Abs($roz))) + '  ')
+                $trL.Foreground = Br '#FB7185'
+            } else {
+                $trL.Text = 'Bez wyraźnej zmiany  '
+                $trL.Foreground = Br '#9FB3C8'
+            }
+            $trL.FontWeight = 'SemiBold'
+            $tr.Inlines.Add($trL)
+
+            $trT = New-Object Windows.Documents.Run
+            $trT.Text = "średnia z $n ostatnich rozruchów wobec $n najstarszych z tej listy"
+            $trT.Foreground = $Window.FindResource('Dim')
+            $tr.Inlines.Add($trT)
+
+            $UI.BootHost.Children.Add($tr) | Out-Null
+        }
+    }
+
     if (@($W.Winni).Count -eq 0) {
         $t = New-Object Windows.Controls.TextBlock
         $t.Text = 'Żaden program nie opóźnia startu na tyle, żeby system to odnotował.'
@@ -10247,9 +10334,9 @@ function Pokaz-CzasStartu {
     $UI.BootHost.Children.Add($naglowek) | Out-Null
 
     $max = 1
-    foreach ($w in $W.Winni) { if ($w.Ms -gt $max) { $max = $w.Ms } }
+    foreach ($poz in $W.Winni) { if ($poz.Ms -gt $max) { $max = $poz.Ms } }
 
-    foreach ($w in $W.Winni) {
+    foreach ($poz in $W.Winni) {
         $rzad = New-Object Windows.Controls.Grid
         $rzad.Margin = New-Object Windows.Thickness 0,0,0,6
         foreach ($sz in @((New-Object Windows.GridLength(1, [Windows.GridUnitType]::Star)),
@@ -10264,7 +10351,7 @@ function Pokaz-CzasStartu {
         $rzad.Children.Add($lewo) | Out-Null
 
         $nz = New-Object Windows.Controls.TextBlock
-        $nz.Text = $w.Nazwa
+        $nz.Text = $poz.Nazwa
         $nz.Foreground = Br '#C7D6E6'
         $nz.FontSize = 12
         $nz.TextTrimming = 'CharacterEllipsis'
@@ -10284,18 +10371,18 @@ function Pokaz-CzasStartu {
         $wyp.Height = 4
         $wyp.CornerRadius = New-Object Windows.CornerRadius 2
         $wyp.HorizontalAlignment = 'Left'
-        $wyp.Background = $(if ($w.Ms -ge 3000) { Br '#FB7185' } elseif ($w.Ms -ge 1000) { Br '#FBBF24' } else { Br '#34D399' })
+        $wyp.Background = $(if ($poz.Ms -ge 3000) { Br '#FB7185' } elseif ($poz.Ms -ge 1000) { Br '#FBBF24' } else { Br '#34D399' })
         $wyp.Width = 1
         $tlo.Child = $wyp
         $tlo.Add_SizeChanged({
             param($s, $e)
             $szer = [double]$e.NewSize.Width
-            if ($szer -gt 0) { $s.Child.Width = [Math]::Max(2, $szer * ($w.Ms / $max)) }
+            if ($szer -gt 0) { $s.Child.Width = [Math]::Max(2, $szer * ($poz.Ms / $max)) }
         }.GetNewClosure())
 
         $ms = New-Object Windows.Controls.TextBlock
-        $ms.Text = Fmt-Sek $w.Ms
-        $ms.Foreground = $(if ($w.Ms -ge 3000) { Br '#FB7185' } elseif ($w.Ms -ge 1000) { Br '#FBBF24' } else { Br '#9FB3C8' })
+        $ms.Text = Fmt-Sek $poz.Ms
+        $ms.Foreground = $(if ($poz.Ms -ge 3000) { Br '#FB7185' } elseif ($poz.Ms -ge 1000) { Br '#FBBF24' } else { Br '#9FB3C8' })
         $ms.FontSize = 12
         $ms.FontWeight = 'SemiBold'
         $ms.VerticalAlignment = 'Top'
@@ -10316,9 +10403,9 @@ function Pokaz-CzasStartu {
     # Slownik dla zakladki Autostart - klucze znormalizowane tak samo
     # jak w bazie opisow, zeby "Steam.exe" trafilo w "steam".
     $script:OpoznieniaStartu = @{}
-    foreach ($w in $W.Winni) {
-        $k = Klucz-Nazwy $w.Nazwa
-        if ($k) { $script:OpoznieniaStartu[$k] = $w.Ms }
+    foreach ($poz in $W.Winni) {
+        $k = Klucz-Nazwy $poz.Nazwa
+        if ($k) { $script:OpoznieniaStartu[$k] = $poz.Ms }
     }
     try { if ($sync.Startup) { Render-Startup } } catch { }
 }
